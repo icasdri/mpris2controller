@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+import dbus
+import dbus.service
+from dbus.mainloop.glib import DBusGMainLoop
+from gi.repository import Gtk
+from dbus.exceptions import DBusException
+from enum import Enum, unique
+
+INTERFACE_PATH = "/org/mpris/MediaPlayer2"
+INTERFACE_DEF = "org.mpris.MediaPlayer2.Player"
+MY_INTERFACE_PATH = "/org/icasdri/mpris2controller"
+MY_INTERFACE_DEF = "org.icasdri.mpris2controller"
+
+
+class Controller(dbus.service.Object):
+    @unique
+    class PlaybackStatus(Enum):
+        UNKNOWN = "Unknown"
+        IS_PLAYING = "Playing"
+        WAS_PLAYING = "Was playing"
+        NOT_PLAYING = "Not playing"
+
+        def __str__(self):
+            return self.value
+
+    class PlayerList:
+        def __init__(self, bus):
+            self.bus = bus
+            self.proxies = dict()
+
+            # Detect and add all players on bus
+            print("Detecting players already on bus and determining "
+                  "playback status...")
+            for p in filter(lambda x: x.find("org.mpris.MediaPlayer2") == 0,
+                            bus.list_names()):
+                self.add(p)
+            self.printout()
+
+        def add(self, name):
+            proxy = self.bus.get_object(name, INTERFACE_PATH)
+            prop_man = dbus.Interface(proxy, 'org.freedesktop.DBus.Properties')
+            try:
+                playback_status = prop_man.Get(INTERFACE_DEF, "PlaybackStatus")
+            except(DBusException):
+                print("Could not determine playback status of {}".format(
+                      proxy.bus_name))
+                proxy.status = UNKNOWN
+            else:
+                if playback_status == "Playing":
+                    proxy.status = IS_PLAYING
+                else:
+                    proxy.status = NOT_PLAYING
+            self.proxies[proxy.bus_name] = proxy
+
+        def remove(self, unique_bus_name):
+            del self.proxies[unique_bus_name]
+
+        def get(self, unique_bus_name):
+            if self.has(unique_bus_name):
+                return self.proxies[unique_bus_name]
+            else:
+                return None
+
+        def has(self, unique_bus_name):
+            return unique_bus_name in self.proxies
+
+        def all_players(self):
+            return self.proxies.values()
+
+        def all_is_playing(self):
+            return filter(lambda x: x.status == IS_PLAYING, self.all_players())
+
+        def all_was_playing(self):
+            return filter(lambda x: x.status == WAS_PLAYING,
+                          self.all_players())
+
+        def single_is_playing(self):
+            """
+            Return the only player on the bus that is playing, otherwise if
+            there is more than one player on the bus that is playing or if
+            there are no players playing, return None
+            """
+            all_is_playing = self.all_is_playing()
+            p1 = next(all_is_playing, None)
+            if p1 is not None:
+                p2 = next(all_is_playing, None)
+                if p2 is None:
+                    return p1
+            return None
+
+        def printout(self):
+            for n, p in self.proxies.items():
+                print("{} -- {}".format(n, p.status))
+            print()
+
+    def __init__(self):
+        self.mainloop = DBusGMainLoop(set_as_default=True)
+        self.bus = dbus.SessionBus()
+        bus_name = dbus.service.BusName(MY_INTERFACE_DEF, bus=self.bus)
+        dbus.service.Object.__init__(self, bus_name, MY_INTERFACE_PATH)
+        self.bus.add_signal_receiver(
+            signal_name="PropertiesChanged",
+            handler_function=self.handle_signal_properties_changed,
+            path=INTERFACE_PATH,
+            sender_keyword='sender')
+        self.bus.add_signal_receiver(
+            signal_name="NameOwnerChanged",
+            handler_function=self.handle_signal_name_change,
+            path=dbus.BUS_DAEMON_PATH,
+            sender_keyword='sender')
+        self.players = Controller.PlayerList(self.bus)
+
+    @dbus.service.method(dbus_interface=MY_INTERFACE_DEF)
+    def PlayPause(self):
+        print("Method PlayPause called")
+        had_playing = False
+        # If there is a player playing on this method call, this will loop
+        # through them and pause them
+        for p in self.players.all_is_playing():
+            p.Pause()
+            had_playing = True
+        # If there wasn't a player playing on this method call
+        if not had_playing:
+            # If there's only one player on the bus, play that
+            if len(self.players.all_players()) == 1:
+                p = next(iter(self.players.all_players()))
+                p.Play()
+            # Otherwise play the one that WAS_PLAYING
+            else:
+                for p in self.players.all_was_playing():
+                    p.Play()
+
+    @dbus.service.method(dbus_interface=MY_INTERFACE_DEF)
+    def Next(self):
+        print("Method Next called")
+        p = self.players.single_is_playing()
+        if p is not None:
+            p.Next()
+
+    @dbus.service.method(dbus_interface=MY_INTERFACE_DEF)
+    def Previous(self):
+        print("Method Prev called")
+        p = self.players.single_is_playing()
+        if p is not None:
+            p.Previous()
+
+    def handle_signal_properties_changed(self, interface, props, sig, sender=None):
+        if interface == INTERFACE_DEF:
+            if not self.players.has(sender):
+                print("Detected new player {}".format(sender))
+                self.players.add(sender)
+            if "PlaybackStatus" in props:
+                print("Got signal from {}".format(sender))
+                proxy = self.players.get(sender)
+                if props["PlaybackStatus"] == "Playing":
+                    proxy.status = IS_PLAYING
+                else:
+                    if proxy.status == IS_PLAYING:
+                        for p in self.players.all_was_playing():
+                            p.status = NOT_PLAYING
+                        proxy.status = WAS_PLAYING
+                self.players.printout()
+
+    def handle_signal_name_change(self, name, old_name, new_name, sender=None):
+        if sender == dbus.BUS_DAEMON_NAME:
+            if self.players.has(name) and self.players.has(old_name) and new_name == "":
+                print("Player", name, "no longer exists!")
+                self.players.remove(name)
+                self.players.printout()
+            #print(name, ":", old_name, "is now", new_name)
+
+
+UNKNOWN = Controller.PlaybackStatus.UNKNOWN
+IS_PLAYING = Controller.PlaybackStatus.IS_PLAYING
+WAS_PLAYING = Controller.PlaybackStatus.WAS_PLAYING
+NOT_PLAYING = Controller.PlaybackStatus.NOT_PLAYING
+
+
+def main():
+    Controller()
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()
