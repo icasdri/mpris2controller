@@ -18,7 +18,7 @@ No more hitting the PlayPause multimedia key and having all your players start p
 * `python3`
 * `dbus`
 * `dbus-python` (packaged as `python-dbus` on some distributions)
-* `pygtk` (for DBus mainloop, version using Qt coming soon)
+* `python3-gobject` (for the glib mainloop)
 
 To install, simply plop the file `mpris2controller` somewhere in your `$PATH` and mark it as executable.
 
