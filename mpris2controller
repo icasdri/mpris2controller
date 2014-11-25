@@ -16,7 +16,7 @@
 import dbus
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
-from gi.repository import Gtk
+from gobject import MainLoop
 from dbus.exceptions import DBusException
 
 # DBus interface and path constants
@@ -183,4 +183,4 @@ class Controller(dbus.service.Object):
 
 if __name__ == "__main__":
     Controller()
-    Gtk.main()
+    MainLoop().run()
