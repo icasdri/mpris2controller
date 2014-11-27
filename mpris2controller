@@ -12,18 +12,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import dbus
 import dbus.service
-from dbus.mainloop.glib import DBusGMainLoop
-from gobject import MainLoop
-from dbus.exceptions import DBusException
+import logging
 
 # DBus interface and path constants
-INTERFACE_PATH = "/org/mpris/MediaPlayer2"
-INTERFACE_DEF = "org.mpris.MediaPlayer2.Player"
-MY_INTERFACE_PATH = "/org/icasdri/mpris2controller"
-MY_INTERFACE_DEF = "org.icasdri.mpris2controller"
+MPRIS_PATH = "/org/mpris/MediaPlayer2"
+MPRIS_INTERFACE = "org.mpris.MediaPlayer2.Player"
+MY_PATH = "/org/icasdri/mpris2controller"
+MY_INTERFACE = "org.icasdri.mpris2controller"
 
 # Tags to add to players
 UNKNOWN = "Unknown"
@@ -31,26 +28,62 @@ IS_PLAYING = "Playing"
 WAS_PLAYING = "Was playing"
 NOT_PLAYING = "Not playing"
 
-
+log = logging.getLogger(__name__)
 class PlayerList:
     def __init__(self, bus):
         self.bus = bus
+        self.playing = set()
+        self.not_playing = []
         self.proxies = dict()
 
         # Detect and add all players on bus
-        print("Detecting players already on bus and determining "
+        log.info("Detecting players already on bus and determining "
               "playback status...")
         for p in filter(lambda x: x.find("org.mpris.MediaPlayer2") == 0,
                         bus.list_names()):
             self.add(p)
         self.printout()
 
+    def add_new_player(self, name):
+        # Add to front of non-playing, can be moved out if propman says so with markas_playing
+        self.not_playing.insert(0, name)
+
+    def markas_playing(self, name):
+        # Add to playing
+        try:
+            self.not_playing.remove(name)
+        except ValueError:
+            pass
+        if name not in self.playing:
+            self.playing.add(name)
+
+    def markas_not_playing(self, name):
+        # Add to back of non-playing
+        self.playing.discard(name)
+        if name not in self.not_playing:
+            self.not_playing.append(name)
+
+    def call_on_all_playing(self, method_name):
+        # Loops through all in playing and calls method
+        for n in self.playing:
+            self.bus.get_object(n, MPRIS_PATH).__getattr__(method_name)()
+
+    def call_on_one_playing(self, method_name):
+        # Calls on one in playing, only if there is only one playing
+        if len(self.playing) == 1:
+            self.call_on_all_playing(method_name)
+
+    def call_on_head_not_playing(self, method_name):
+        # Pops/peeks first off back of non-playing and calls method
+        if len(self.not_playing) > 0:
+            self.bus.get_object(self.not_playing[-1], MPRIS_PATH).__getattr__(method_name)()
+
     def add(self, name):
-        proxy = self.bus.get_object(name, INTERFACE_PATH)
+        proxy = self.bus.get_object(name, MPRIS_PATH)
         prop_man = dbus.Interface(proxy, 'org.freedesktop.DBus.Properties')
         try:
-            playback_status = prop_man.Get(INTERFACE_DEF, "PlaybackStatus")
-        except DBusException:
+            playback_status = prop_man.Get(MPRIS_INTERFACE, "PlaybackStatus")
+        except dbus.DBusException:
             print("Could not determine playback status of {}".format(
                   proxy.bus_name))
             proxy.status = UNKNOWN
@@ -104,15 +137,14 @@ class PlayerList:
 
 
 class Controller(dbus.service.Object):
-    def __init__(self):
-        self.mainloop = DBusGMainLoop(set_as_default=True)
-        self.bus = dbus.SessionBus()
-        bus_name = dbus.service.BusName(MY_INTERFACE_DEF, bus=self.bus)
-        dbus.service.Object.__init__(self, bus_name, MY_INTERFACE_PATH)
+    def __init__(self, bus):
+        self.bus = bus
+        bus_name = dbus.service.BusName(MY_INTERFACE, bus=self.bus)
+        dbus.service.Object.__init__(self, bus_name, MY_PATH)
         self.bus.add_signal_receiver(
             signal_name="PropertiesChanged",
             handler_function=self.handle_signal_properties_changed,
-            path=INTERFACE_PATH,
+            path=MPRIS_PATH,
             sender_keyword='sender')
         self.bus.add_signal_receiver(
             signal_name="NameOwnerChanged",
@@ -121,7 +153,7 @@ class Controller(dbus.service.Object):
             sender_keyword='sender')
         self.players = PlayerList(self.bus)
 
-    @dbus.service.method(dbus_interface=MY_INTERFACE_DEF)
+    @dbus.service.method(dbus_interface=MY_INTERFACE)
     def PlayPause(self):
         print("Method PlayPause called")
         had_playing = False
@@ -141,14 +173,14 @@ class Controller(dbus.service.Object):
                 for p in self.players.all_was_playing():
                     p.Play()
 
-    @dbus.service.method(dbus_interface=MY_INTERFACE_DEF)
+    @dbus.service.method(dbus_interface=MY_INTERFACE)
     def Next(self):
         print("Method Next called")
         p = self.players.single_is_playing()
         if p is not None:
             p.Next()
 
-    @dbus.service.method(dbus_interface=MY_INTERFACE_DEF)
+    @dbus.service.method(dbus_interface=MY_INTERFACE)
     def Previous(self):
         print("Method Prev called")
         p = self.players.single_is_playing()
@@ -156,7 +188,7 @@ class Controller(dbus.service.Object):
             p.Previous()
 
     def handle_signal_properties_changed(self, interface, props, sig, sender=None):
-        if interface == INTERFACE_DEF:
+        if interface == MPRIS_INTERFACE:
             if not self.players.has(sender):
                 print("Detected new player {}".format(sender))
                 self.players.add(sender)
@@ -182,5 +214,8 @@ class Controller(dbus.service.Object):
 
 
 if __name__ == "__main__":
-    Controller()
+    from dbus.mainloop.glib import DBusGMainLoop
+    from gobject import MainLoop
+    DBusGMainLoop(set_as_default=True)
+    Controller(dbus.SessionBus())
     MainLoop().run()
