@@ -18,6 +18,6 @@ setup(
     ],
     packages=find_packages(),
     entry_points={
-        'console_scripts': ['mpris2controller = mpris2controller:main']
+        'console_scripts': ['mpris2controller = mpris2controller.mpris2controller:main']
     }
 )
