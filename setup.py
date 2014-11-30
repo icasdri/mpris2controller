@@ -17,7 +17,6 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3'
     ],
-    packages=[''],
     entry_points={
         'console_script': ['mpris2controller = mpris2controller.main']
     }
