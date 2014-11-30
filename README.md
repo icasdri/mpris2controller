@@ -1,5 +1,5 @@
-# mpris2controller-python
-**mpris2controller-python** is a small user daemon for GNU/Linux written in python that intelligently controls [MPRIS2](http://specifications.freedesktop.org/mpris-spec/latest/)-compatible media players.
+# mpris2controller
+**mpris2controller** is a small user daemon for GNU/Linux written in python that intelligently controls [MPRIS2](http://specifications.freedesktop.org/mpris-spec/latest/)-compatible media players.
 
 Users call the daemon (via multimedia keys or otherwise) to control all their media players at once.
 
@@ -14,7 +14,7 @@ The daemon accomplishes this by keeping track of the playback status of all MPRI
 No more hitting the PlayPause multimedia key and having all your players start playing at once! And no more having to control only one specific player when using a Desktop Environment that does not have builtin support.
 
 ## Installation
-**mpris2controller-python** is composed of a single python .py file, and requires the following dependencies:
+**mpris2controller** is composed of a single python .py file, and requires the following dependencies:
 * `python3`
 * `dbus`
 * `dbus-python` (packaged as `python-dbus` on some distributions)
@@ -22,10 +22,10 @@ No more hitting the PlayPause multimedia key and having all your players start p
 
 To install, simply plop the file `mpris2controller` somewhere in your `$PATH` and mark it as executable.
 
-For Arch Linux users, [mpris2controller-python-git](https://aur.archlinux.org/packages/mpris2controller-python-git/) is available in the AUR.
+For Arch Linux users, [mpris2controller-git](https://aur.archlinux.org/packages/mpris2controller-git/) is available in the AUR.
 
 ## Usage
-**mpris2controller-python** is controlled via methods `PlayPause`, `Next`, and `Previous` exposed on [DBus](http://www.freedesktop.org/wiki/Software/dbus/) at bus address `org.icasdri.mpris2controller` and interface `/org/icasdri/mpris2controller`
+**mpris2controller** is controlled via methods `PlayPause`, `Next`, and `Previous` exposed on [DBus](http://www.freedesktop.org/wiki/Software/dbus/) at bus address `org.icasdri.mpris2controller` and interface `/org/icasdri/mpris2controller`
 
 These methods can be called from a terminal using the following commands (provided by DBus):
 

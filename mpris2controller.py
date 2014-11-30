@@ -23,8 +23,8 @@ _handler = logging.StreamHandler(sys.stdout)
 _handler.setLevel(logging.DEBUG)
 log.addHandler(_handler)
 
-MY_PATH = "/org/icasdri/mpris2controller"
-MY_INTERFACE = "org.icasdri.mpris2controller"
+MY_PATH = "/org/icasdri/mpris2controller.py"
+MY_INTERFACE = "org.icasdri.mpris2controller.py"
 
 MPRIS_PATH = "/org/mpris/MediaPlayer2"
 MPRIS_INTERFACE = "org.mpris.MediaPlayer2.Player"
