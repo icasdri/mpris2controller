@@ -137,9 +137,13 @@ class Controller(dbus.service.Object):
         log.info("Method call for Previous!")
         self.call_on_one_playing("Previous")
 
-if __name__ == "__main__":
+def main():
     from dbus.mainloop.glib import DBusGMainLoop
     from gobject import MainLoop
     DBusGMainLoop(set_as_default=True)
     Controller(dbus.SessionBus())
     MainLoop().run()
+
+if __name__ == "__main__":
+    main()
+
