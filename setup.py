@@ -1,5 +1,4 @@
-from setuptools import setup
-requires = ['dbus-python', 'pygobject']
+from setuptools import setup, find_packages
 
 setup(
     name='mpris2controller',
@@ -17,8 +16,8 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3'
     ],
+    packages=find_packages(),
     entry_points={
         'console_scripts': ['mpris2controller = mpris2controller:main']
     }
-
 )
