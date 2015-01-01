@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = "icasdri"
+
 import dbus
 import dbus.service
 import sys
@@ -143,6 +144,7 @@ class Controller(dbus.service.Object):
         self.call_on_one_playing("Previous")
 
 def _parse_args(options=None):
+    pass
 
 def entry_point(options=None):
     Controller(dbus.SessionBus())
