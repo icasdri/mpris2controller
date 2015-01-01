@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-
+# Copyright 2014 icasdri
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -137,11 +137,14 @@ class Controller(dbus.service.Object):
         log.info("Method call for Previous!")
         self.call_on_one_playing("Previous")
 
+def entry_point(options=None):
+    Controller(dbus.SessionBus())
+
 def main():
     from dbus.mainloop.glib import DBusGMainLoop
     from gobject import MainLoop
     DBusGMainLoop(set_as_default=True)
-    Controller(dbus.SessionBus())
+    entry_point()
     MainLoop().run()
 
 if __name__ == "__main__":
