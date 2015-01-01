@@ -1,17 +1,20 @@
 # Copyright 2014 icasdri
 #
-# This program is free software: you can redistribute it and/or modify
+# This file is part of mpris2controller.
+#
+# mpris2controller is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
+# mpris2controller is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+__author__ = "icasdri"
 import dbus
 import dbus.service
 import sys
@@ -22,6 +25,8 @@ log.setLevel(logging.DEBUG)
 _handler = logging.StreamHandler(sys.stdout)
 _handler.setLevel(logging.DEBUG)
 log.addHandler(_handler)
+
+VERSION = 0.3
 
 MY_PATH = "/org/icasdri/mpris2controller"
 MY_INTERFACE = "org.icasdri.mpris2controller"
@@ -136,6 +141,8 @@ class Controller(dbus.service.Object):
     def Previous(self):
         log.info("Method call for Previous!")
         self.call_on_one_playing("Previous")
+
+def _parse_args(options=None):
 
 def entry_point(options=None):
     Controller(dbus.SessionBus())
