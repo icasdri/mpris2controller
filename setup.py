@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = "icasdri"
 from distutils.core import setup
-from mpris2controller.controller import VERSION
+from mpris2controller.controller import VERSION, DESCRIPTION
 
 setup(
     name='mpris2controller',
@@ -24,7 +24,7 @@ setup(
     license='GPL3',
     author='icasdri',
     author_email='icasdri@gmail.com',
-    description='A small user daemon for GNU/Linux that intelligently controls MPRIS2-compatible media players',
+    description=DESCRIPTION,
     url='https://github.com/icasdri/mpris2controller',
     classifiers=[
         'Development Status :: 4 - Beta',

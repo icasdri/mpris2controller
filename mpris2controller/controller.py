@@ -23,11 +23,9 @@ import logging
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
-_handler = logging.StreamHandler(sys.stdout)
-_handler.setLevel(logging.DEBUG)
-log.addHandler(_handler)
 
 VERSION = 0.3
+DESCRIPTION = "A small user daemon for GNU/Linux that intelligently controls MPRIS2-compatible media players"
 
 MY_PATH = "/org/icasdri/mpris2controller"
 MY_INTERFACE = "org.icasdri.mpris2controller"
@@ -144,9 +142,28 @@ class Controller(dbus.service.Object):
         self.call_on_one_playing("Previous")
 
 def _parse_args(options=None):
-    pass
+    import argparse
+    a_parser = argparse.ArgumentParser(prog="mpris2controller",
+                                       description=DESCRIPTION)
+    a_parser.add_argument("--version", action='version', version="%(prog)s v{}".format(VERSION))
+    a_parser.add_argument("--debug", action='store_true')
+
+    if options is None:
+        args = a_parser.parse_args()
+    else:
+        args = a_parser.parse_args(options)
+
+    if args.debug:
+        log.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler(sys.stdout)
+        log.addHandler(handler)
+    else:
+        log.setLevel(logging.WARNING)
+        error_handler = logging.StreamHandler(sys.stderr)
+        log.addHandler(error_handler)
 
 def entry_point(options=None):
+    _parse_args(options)
     Controller(dbus.SessionBus())
 
 def main():
