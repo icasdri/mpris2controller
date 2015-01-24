@@ -42,7 +42,7 @@ class Controller(dbus.service.Object):
     def __init__(self, bus):
         self.bus = bus
 
-        bus_name = dbus.service.BusName(MY_INTERFACE, bus=self.bus)
+        bus_name = dbus.service.BusName(MY_BUS_NAME, bus=self.bus)
         dbus.service.Object.__init__(self, bus_name, MY_PATH)
 
         self.bus.add_signal_receiver(
