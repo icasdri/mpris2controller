@@ -27,8 +27,9 @@ log.setLevel(logging.DEBUG)
 VERSION = 0.3
 DESCRIPTION = "A small user daemon for GNU/Linux that intelligently controls MPRIS2-compatible media players"
 
+MY_BUS_NAME = "org.icasdri.mpris2controller"
 MY_PATH = "/org/icasdri/mpris2controller"
-MY_INTERFACE = "org.icasdri.mpris2controller"
+MY_INTERFACE = MY_BUS_NAME
 
 MPRIS_PATH = "/org/mpris/MediaPlayer2"
 MPRIS_INTERFACE = "org.mpris.MediaPlayer2.Player"
@@ -40,8 +41,8 @@ def is_mpris_player(name):
 class Controller(dbus.service.Object):
     def __init__(self, bus):
         self.bus = bus
-        bus_name = dbus.service.BusName(MY_INTERFACE, bus=self.bus)
 
+        bus_name = dbus.service.BusName(MY_INTERFACE, bus=self.bus)
         dbus.service.Object.__init__(self, bus_name, MY_PATH)
 
         self.bus.add_signal_receiver(
