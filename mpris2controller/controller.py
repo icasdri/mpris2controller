@@ -113,7 +113,7 @@ class Controller(dbus.service.Object):
     def call_on_all_playing(self, method_name):
         # Loops through all in playing and calls method
         for n in self.playing:
-            self.bus.get_object(n, MPRIS_PATH).__getattr__(method_name)()
+            getattr(self.bus.get_object(n, MPRIS_PATH), method_name)()
 
     def call_on_one_playing(self, method_name):
         # Calls on one in playing, only if there is only one playing
@@ -123,7 +123,7 @@ class Controller(dbus.service.Object):
     def call_on_head_not_playing(self, method_name):
         # Pops/peeks first off back of non-playing and calls method
         if len(self.not_playing) > 0:
-            self.bus.get_object(self.not_playing[-1], MPRIS_PATH).__getattr__(method_name)()
+            getattr(self.bus.get_object(self.not_playing[-1], MPRIS_PATH), method_name)()
 
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def PlayPause(self):
