@@ -18,6 +18,7 @@ __author__ = "icasdri"
 
 import dbus
 import dbus.service
+from dbus.exceptions import DBusException
 import sys
 import logging
 
@@ -146,6 +147,7 @@ def _parse_args(options=None):
     import argparse
     a_parser = argparse.ArgumentParser(prog="mpris2controller",
                                        description=DESCRIPTION)
+    a_parser.add_argument("--call", help="method to call on running daemon (PlayPause, Next, or Previous)")
     a_parser.add_argument("--version", action='version', version="%(prog)s v{}".format(VERSION))
     a_parser.add_argument("--debug", action='store_true')
 
@@ -162,6 +164,19 @@ def _parse_args(options=None):
         log.setLevel(logging.WARNING)
         error_handler = logging.StreamHandler(sys.stderr)
         log.addHandler(error_handler)
+
+    if dbus.SessionBus().name_has_owner(MY_BUS_NAME):
+        if args.call is not None:
+            log.info("Calling method {} on running daemon".format(args.call))
+            try:
+                getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), args.call)()
+            except DBusException as ex:
+                log.error("{}\nFailed to call method {}. Check that the daemon is running and that the method name "
+                          "is spelled correctly.\n".format(ex, args.call))
+        else:
+            print("Daemon is already running. Exiting.")
+        exit()
+
 
 def entry_point(options=None):
     _parse_args(options)
