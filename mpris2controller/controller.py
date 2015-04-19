@@ -147,9 +147,9 @@ def _parse_args(options=None):
     import argparse
     a_parser = argparse.ArgumentParser(prog="mpris2controller",
                                        description=DESCRIPTION)
-    a_parser.add_argument("--call", help="method to call on running daemon (PlayPause, Next, or Previous)")
-    a_parser.add_argument("--version", action='version', version="%(prog)s v{}".format(VERSION))
-    a_parser.add_argument("--debug", action='store_true')
+    a_parser.add_argument('--call', metavar='METHOD', help="method to call on running daemon (PlayPause, Next, or Previous)")
+    a_parser.add_argument('--version', action='version', version="%(prog)s v{}".format(VERSION))
+    a_parser.add_argument('--debug', action='store_true')
 
     if options is None:
         args = a_parser.parse_args()
@@ -181,6 +181,7 @@ def _parse_args(options=None):
 def entry_point(options=None):
     _parse_args(options)
     Controller(dbus.SessionBus())
+
 
 def main():
     from dbus.mainloop.glib import DBusGMainLoop
