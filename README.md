@@ -26,7 +26,7 @@ To install, simply clone this repo and run `python setup.py install`
 For Arch Linux users, [mpris2controller-git](https://aur.archlinux.org/packages/mpris2controller-git/) is available in the AUR.
 
 ## Usage
-To start the daemon, simply run `mpris2controller` with no options (note however that the application does not fork). To have the daemon start with your desktop session, see Autostart below.
+The daemon must be started for the commands below to work. To start the daemon, simply run `mpris2controller` with no options (note however that the application does not fork). The daemon is automatically configured to autostart with the desktop session (for more information, see Autostart below).
 
 Once the daemon is started, **mpris2controller** allows you to control all your MPRIS2-compatible multimedia players at once via the terminal using the `mpris2controller` command.
 
