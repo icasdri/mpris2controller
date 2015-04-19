@@ -147,7 +147,7 @@ def _parse_args(options=None):
     import argparse
     a_parser = argparse.ArgumentParser(prog="mpris2controller",
                                        description=DESCRIPTION)
-    a_parser.add_argument('call', '--call', metavar='METHOD', help="method to call on running daemon (PlayPause, Next, or Previous)")
+    a_parser.add_argument('call', nargs='?', metavar='METHOD', help="method to call on running daemon (PlayPause, Next, or Previous)")
     a_parser.add_argument('--version', action='version', version="%(prog)s v{}".format(VERSION))
     a_parser.add_argument('--debug', action='store_true')
 
