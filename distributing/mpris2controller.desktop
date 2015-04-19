@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=mpris2controller Daemon
+Comment=Autostart mpris2controller daemon with desktop session
+Exec=mpris2controller
+Terminal=false
+Type=Application
+NoDisplay=true

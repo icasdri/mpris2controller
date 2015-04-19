@@ -35,5 +35,6 @@ setup(
         'Programming Language :: Python :: 3'
     ],
     packages=['mpris2controller'],
-    scripts=['distributing/mpris2controller']
+    scripts=['distributing/mpris2controller'],
+    data_files=[('/etc/xdg/autostart', ['distributing/mpris2controller.desktop'])]
 )
