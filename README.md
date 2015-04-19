@@ -1,71 +1,78 @@
 # mpris2controller
 **mpris2controller** is a small user daemon for GNU/Linux written in python that intelligently controls [MPRIS2](http://specifications.freedesktop.org/mpris-spec/latest/)-compatible media players.
 
-Users call the daemon (via multimedia keys or otherwise) to control all their media players at once.
-
-When called, the daemon does what the user expects:
-* When called to Play or Pause, the daemon either
+The daemon responds to commands/controls via multimedia keys or the terminal, and controls all open media players at once, doing what one would expect.
+* Play/Pause control
 	* Pauses all players if one or more are currently playing, OR
     * Plays the most recently paused player if none are currently playing
-* When the user directs the daemon to advance to the next of previous song, the daemon calls Next or Previous only on the player that is playing.
+* Next/Previos control
+	* Advances to the next or previous song only on the player that is playing.
 
 The daemon accomplishes this by keeping track of the playback status of all MPRIS2 players currently active in the user's session.
 
-No more hitting the PlayPause multimedia key and having all your players start playing at once! And no more having to control only one specific player when using a Desktop Environment that does not have builtin support.
+This daemon alleviates the problem of only being able to have keybindings for one specific player. It also avoids the problems plaguing other implementations (Desktop plugins, etc.) with all players playing at once, etc.
 
 ## Installation
-**mpris2controller** is composed of a single python .py file, and requires the following dependencies:
-* `python3`
-* `dbus`
+**mpris2controller** is writen in Python 3, and requires the python 3 versions of the following dependencies:
 * `dbus-python` (packaged as `python-dbus` on some distributions)
-* `python3-gobject` (for the glib mainloop)
+* `python-gobject` (for the glib mainloop)
 
-To install, simply plop the file `mpris2controller` somewhere in your `$PATH` and mark it as executable.
+To install, simply clone this repo and run `python setup.py install`
+
+	git clone https://github.com/icasdri/mpris2controller.git
+    cd mpris2controller
+    python setup.py install
 
 For Arch Linux users, [mpris2controller-git](https://aur.archlinux.org/packages/mpris2controller-git/) is available in the AUR.
 
 ## Usage
-**mpris2controller** is controlled via methods `PlayPause`, `Next`, and `Previous` exposed on [DBus](http://www.freedesktop.org/wiki/Software/dbus/) at bus address `org.icasdri.mpris2controller` and interface `/org/icasdri/mpris2controller`
+To start the daemon, simply run `mpris2controller` with no options (note however that the application does not fork). To have the daemon start with your desktop session, see Autostart below.
 
-These methods can be called from a terminal using the following commands (provided by DBus):
+Once the daemon is started, **mpris2controller** allows you to control all your MPRIS2-compatible multimedia players at once via the terminal using the `mpris2controller` command.
 
 ###### PlayPause
-	dbus-send --session --type=method_call --dest=org.icasdri.mpris2controller /org/icasdri/mpris2controller org.icasdri.mpris2controller.PlayPause
+	mpris2controller PlayPause
 
 ###### Next
-	dbus-send --session --type=method_call --dest=org.icasdri.mpris2controller /org/icasdri/mpris2controller org.icasdri.mpris2controller.Next
+	mpris2controller Next
 
 ###### Previous
-	dbus-send --session --type=method_call --dest=org.icasdri.mpris2controller /org/icasdri/mpris2controller org.icasdri.mpris2controller.Previous
+	mpris2controller Previous
+
+These controls can also be called via methods exposed on the [DBus](http://www.freedesktop.org/wiki/Software/dbus/) session bus.
+
+*Bus Address*: `org.icasdri.mpris2controller`
+*Interface*: `/org/icasdri/mpris2controller`
+*Methods*:
+* `org.icasdri.mpris2controller.PlayPause`
+* `org.icasdri.mpris2controller.Next`
+* `org.icasdri.mpris2controller.Previoius`
 
 ### Autostart
 
-The daemon must be started for it to work. Simply have `mpris2controller` autostart with your desktop session.
+The daemon must be started with the desktop session for it to work. This should happen automatically since the installation will drop an autostart file at `/etc/xdg/autostart/mpris2controller.desktop`.
 
-Detailed instructions for [i3](http://i3wm.org) and [XFCE](http://xfce.org) are provided below for convenience. For users of other Desktop Environments or Window Managers, follow your DE or WM's documentation for autostarting applications.
-
-##### i3
-For [i3](http://i3wm.org) users, add the following to your i3 config.
-
-	exec --no-startup-id mpris2controller
-
-##### XFCE
-For [XFCE](http://xfce.org) users, open the XFCE Settings Manager from the panel menu. Then click on Session and Startup and navigate to the Application Autostart tab.
-
-Click on the Add button towards the bottom, fill in any Name and Description, then put `mpris2controller` as the Command, and finally press OK.
+If for some reason, this does not start mpris2controller with your desktop, consult your desktop environment's documentation to add `mpris2controller` to autostart.
 
 ### Multimedia keys
 
 To control the daemon via mutlimedia keys add keyboard shortcuts that bind your multimedia keys to the commands listed at the beginning of the Usage section. 
 
-Detailed instructions for [i3](http://i3wm.org) and [XFCE](http://xfce.org) are provided below for convenience. For users of other Desktop Environments or Window Managers, follow your DE or WM's documentation for adding keyboard shortcuts.
+Detailed instructions for [GNOME](http://gnome.org), [i3](http://i3wm.org), and [XFCE](http://xfce.org) are provided below for convenience. For users of other Desktop Environments or Window Managers, follow your DE or WM's documentation for adding keyboard shortcuts.
+
+##### GNOME
+For [GNOME](http://gnome.org) useres, open GNOME Control Center, got to Keyboard, then Shortcuts. Or execute `gnome-control-center keyboard shortcuts`.
+
+Then go to Custom Shortcuts, then the "+" sign at the bottom. Give it any descriptive name, then give it one of the commands listed at the beginning of the Usage section. Finally, click "Disabled" in the second column next to the shortcut you just created, and press your respective multimedia key.
+
+Note: mpris2controller works with the [Media Player Indicator](https://extensions.gnome.org/extension/55/media-player-indicator/) GNOME Shell Extension. GNOME will simply prompt you to override its keybindings when adding the custom shortcuts. 
 
 ##### i3
 For [i3](http://i3wm.org) users, add the following to your i3 config.
 
-	bindsym XF86AudioPlay exec dbus-send --session --type=method_call --dest=org.icasdri.mpris2controller /org/icasdri/mpris2controller org.icasdri.mpris2controller.PlayPause
-    bindsym XF86AudioPrev exec dbus-send --session --type=method_call --dest=org.icasdri.mpris2controller /org/icasdri/mpris2controller org.icasdri.mpris2controller.Previous
-    bindsym XF86AudioNext exec dbus-send --session --type=method_call --dest=org.icasdri.mpris2controller /org/icasdri/mpris2controller org.icasdri.mpris2controller.Next
+	bindsym XF86AudioPlay exec mpris2controller PlayPause
+    bindsym XF86AudioPrev exec mpris2controller Previous
+    bindsym XF86AudioNext exec mpris2controller Next
 
 ##### XFCE
 For [XFCE](http://xfce.org) users, open the XFCE Settings Manager from the panel menu. Then click on Keyboard and navigate to the Application Shortcuts tab.
