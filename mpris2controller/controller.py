@@ -19,6 +19,7 @@ __author__ = "icasdri"
 import dbus
 import dbus.service
 from dbus.exceptions import DBusException
+from gobject import MainLoop, MainContext
 import sys
 import logging
 
@@ -35,6 +36,7 @@ MY_INTERFACE = MY_BUS_NAME
 MPRIS_PATH = "/org/mpris/MediaPlayer2"
 MPRIS_INTERFACE = "org.mpris.MediaPlayer2.Player"
 
+
 def is_mpris_player(name):
     return name.find("org.mpris.MediaPlayer2") == 0
 
@@ -50,7 +52,7 @@ class Controller(dbus.service.Object):
             signal_name="PropertiesChanged",
             handler_function=self.handle_signal_properties_changed,
             path=MPRIS_PATH,
-            #dbus_interface=MPRIS_INTERFACE, # This doesn't seem to work for some reason
+            # dbus_interface=MPRIS_INTERFACE, # This doesn't seem to work for some reason
             sender_keyword='sender')
         self.bus.add_signal_receiver(
             signal_name="NameOwnerChanged",
@@ -80,7 +82,7 @@ class Controller(dbus.service.Object):
                     self.markas_not_playing(sender)
 
     def handle_signal_name_change(self, name, old_name, new_name, sender=None):
-        #if self.players.has(name) and self.players.has(old_name) and new_name == "":
+        # if self.players.has(name) and self.players.has(old_name) and new_name == "":
         #print(name, ":", old_name, "is now", new_name)
         if new_name == "":
             log.info("Received NameOwnerChange signal from bus daemon. Owner of {} lost.".format(name))
@@ -143,11 +145,17 @@ class Controller(dbus.service.Object):
         log.info("Method call for Previous!")
         self.call_on_one_playing("Previous")
 
+
 def _parse_args(options=None):
     import argparse
+
     a_parser = argparse.ArgumentParser(prog="mpris2controller",
                                        description=DESCRIPTION)
-    a_parser.add_argument('call', nargs='?', metavar='METHOD', help="method to call on running daemon (PlayPause, Next, or Previous)")
+    a_parser.add_argument('call', nargs='?', metavar='METHOD',
+                          help="calls method (PlayPause, Next, or Previous) on daemon, starting it if necessary"
+                               "(note: cannot be used with --no-fork)")
+    a_parser.add_argument('--no-fork', '--nofork', '--foreground', action='store_true',
+                          help="prevent daemon from spawning in background")
     a_parser.add_argument('--version', action='version', version="%(prog)s v{}".format(VERSION))
     a_parser.add_argument('--debug', action='store_true')
 
@@ -165,30 +173,89 @@ def _parse_args(options=None):
         error_handler = logging.StreamHandler(sys.stderr)
         log.addHandler(error_handler)
 
-    if dbus.SessionBus().name_has_owner(MY_BUS_NAME):
-        if args.call is not None:
-            log.info("Calling method {} on running daemon".format(args.call))
-            try:
-                getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), args.call)()
-            except DBusException as ex:
-                log.error("{}\nFailed to call method {}. Check that the daemon is running and that the method name "
-                          "is spelled correctly.\n".format(ex, args.call))
-        else:
-            print("Daemon is already running. Exiting.")
-        exit()
+    if args.no_fork and args.call is not None:
+        log.error("Cannot specify method with --no-fork. Exiting.")
+        exit(1)
+
+    return args
 
 
-def entry_point(options=None):
-    _parse_args(options)
+def _start_daemon():
+    log.info("Starting the daemon.")
     Controller(dbus.SessionBus())
+    MainLoop().run()
+
+
+def _fork_daemon():
+    from os import fork
+    log.info("Forking to new process.")
+    child_1 = fork()
+    if child_1 == 0:
+        log.debug("Forking to second child (the double fork).")
+        child_2 = fork()
+        if child_2 == 0:
+            log.debug("Starting daemon in second child.")
+            _start_daemon()
+        else:
+            log.debug("Exiting first child.")
+            exit()
+    return False
+
+
+def _sched_fork_daemon():
+    from gobject import timeout_add
+    timeout_add(1000, _fork_daemon)
+
+
+def _sched_call(method_name):
+    def handle_signal(name, old_owner, new_owner):
+        if name == MY_BUS_NAME:
+            print("NAME_OWNER_CHANGED")
+            print("Method_name: {}".format(method_name))
+            if new_owner != "" and old_owner == "":
+                _call_method(method_name)
+                exit()
+
+    dbus.SessionBus().add_signal_receiver(
+        signal_name="NameOwnerChanged",
+        handler_function=handle_signal,
+        path=dbus.BUS_DAEMON_PATH,
+        bus_name=dbus.BUS_DAEMON_NAME)
+
+
+def _call_method(method_name):
+    try:
+        log.info("Calling method {} on daemon.".format(method_name))
+        getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), method_name)()
+    except DBusException as ex:
+        log.error("{}\nFailed to call method {}. Check that the method name "
+                  "is spelled correctly.\n".format(ex, method_name))
+
+
+def entry_point(options=None, nofork=True):
+    args = _parse_args(options)
+    if not dbus.SessionBus().name_has_owner(MY_BUS_NAME):
+        if nofork or args.no_fork:
+            _start_daemon()
+        else:
+            if args.call is not None:
+                _sched_call(args.call)
+                _sched_fork_daemon()
+                MainLoop().run()
+            else:
+                _fork_daemon()
+    else:
+        if args.call is not None:
+            _call_method(args.call)
+        log.info("Daemon already running. Exiting.")
+        exit()
 
 
 def main():
     from dbus.mainloop.glib import DBusGMainLoop
-    from gobject import MainLoop
     DBusGMainLoop(set_as_default=True)
-    entry_point()
-    MainLoop().run()
+    entry_point(nofork=False)
+
 
 if __name__ == "__main__":
     main()
