@@ -19,7 +19,7 @@ __author__ = "icasdri"
 import dbus
 import dbus.service
 from dbus.exceptions import DBusException
-from gobject import MainLoop, MainContext
+from gobject import MainLoop
 import sys
 import logging
 
