@@ -14,6 +14,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from time import sleep
+
 __author__ = "icasdri"
 
 import dbus
@@ -58,8 +60,7 @@ class Controller(dbus.service.Object):
             signal_name="NameOwnerChanged",
             handler_function=self.handle_signal_name_change,
             path=dbus.BUS_DAEMON_PATH,
-            bus_name=dbus.BUS_DAEMON_NAME,
-            sender_keyword='sender')
+            bus_name=dbus.BUS_DAEMON_NAME)
 
         self.playing = set()
         self.not_playing = []
@@ -81,10 +82,10 @@ class Controller(dbus.service.Object):
                 else:
                     self.markas_not_playing(sender)
 
-    def handle_signal_name_change(self, name, old_name, new_name, sender=None):
+    def handle_signal_name_change(self, name, old_owner, new_owner):
         # if self.players.has(name) and self.players.has(old_name) and new_name == "":
         #print(name, ":", old_name, "is now", new_name)
-        if new_name == "":
+        if new_owner == "":
             log.info("Received NameOwnerChange signal from bus daemon. Owner of {} lost.".format(name))
             self.remove(name)
 
@@ -191,36 +192,8 @@ def _fork_daemon():
     log.info("Forking to new process.")
     child_1 = fork()
     if child_1 == 0:
-        log.debug("Forking to second child (the double fork).")
-        child_2 = fork()
-        if child_2 == 0:
-            log.debug("Starting daemon in second child.")
-            _start_daemon()
-        else:
-            log.debug("Exiting first child.")
-            exit()
-    return False
-
-
-def _sched_fork_daemon():
-    from gobject import timeout_add
-    timeout_add(1000, _fork_daemon)
-
-
-def _sched_call(method_name):
-    def handle_signal(name, old_owner, new_owner):
-        if name == MY_BUS_NAME:
-            print("NAME_OWNER_CHANGED")
-            print("Method_name: {}".format(method_name))
-            if new_owner != "" and old_owner == "":
-                _call_method(method_name)
-                exit()
-
-    dbus.SessionBus().add_signal_receiver(
-        signal_name="NameOwnerChanged",
-        handler_function=handle_signal,
-        path=dbus.BUS_DAEMON_PATH,
-        bus_name=dbus.BUS_DAEMON_NAME)
+        _start_daemon()
+        exit(1)  # Do not continue running non-daemon code if mainloop exits
 
 
 def _call_method(method_name):
@@ -228,27 +201,44 @@ def _call_method(method_name):
         log.info("Calling method {} on daemon.".format(method_name))
         getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), method_name)()
     except DBusException as ex:
-        log.error("{}\nFailed to call method {}. Check that the method name "
-                  "is spelled correctly.\n".format(ex, method_name))
+        log.error("{}\nFailed to call method {}.".format(ex, method_name))
+        raise ex
 
 
 def entry_point(options=None, nofork=True):
     args = _parse_args(options)
     if not dbus.SessionBus().name_has_owner(MY_BUS_NAME):
         if nofork or args.no_fork:
+            if args.call is not None:
+                def _callback(count=0):
+                    count += 1
+                    try:
+                        _call_method()
+                        return False
+                    except DBusException:
+                        return count < 5
+                from gobject import timeout_add
+                timeout_add(400, _callback)
+
             _start_daemon()
         else:
-            if args.call is not None:
-                _sched_call(args.call)
-                _sched_fork_daemon()
-                MainLoop().run()
-            else:
-                _fork_daemon()
+            _fork_daemon()
     else:
-        if args.call is not None:
-            _call_method(args.call)
-        log.info("Daemon already running. Exiting.")
-        exit()
+        log.info("Daemon already running.")
+
+    if args.call is not None:
+        for tp in (200, 400, 1200, 2300):
+            try:
+                _call_method(args.call)
+                break
+            except DBusException:
+                sleep(tp)
+        else:
+            log.error("Failed to call method. Exhausted retries, Exiting.")
+            exit(1)
+
+    log.info("Exiting.")
+    exit()
 
 
 def main():
