@@ -207,42 +207,42 @@ def _call_method(method_name):
     try:
         log.info("Calling method {} on daemon.".format(method_name))
         getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), method_name)()
+        return True
     except DBusException as ex:
         log.error("{}\nFailed to call method {}.".format(ex, method_name))
-        raise ex
+        return False
+
+def _daemon_up():
+    return dbus.SessionBus().name_has_owner(MY_BUS_NAME)
 
 
 def entry_point(options=None, nofork=True):
     args = _parse_args(options)
-    if not dbus.SessionBus().name_has_owner(MY_BUS_NAME):
+    if not _daemon_up():
         if nofork or args.no_fork:
             if args.call is not None:
                 def _callback(count=0):
                     count += 1
-                    try:
-                        _call_method()
-                        return False
-                    except DBusException:
-                        return count < 5
+                    return not (_call_method() or count > 5)
                 from gobject import timeout_add
                 timeout_add(400, _callback)
 
             _start_daemon()
         else:
             _fork_daemon(debug=args.debug)
+            # Wait for daemon to come up
+            for wait in (200, 300, 300, 400, 1200, 2300):
+                sleep(wait)
+                if _daemon_up():
+                    break
+            else:
+                log.error("Daemon failed to come up after several retries. Exiting")
+                exit(1)
     else:
         log.info("Daemon already running.")
 
     if args.call is not None:
-        for tp in (200, 400, 1200, 2300):
-            try:
-                _call_method(args.call)
-                break
-            except DBusException:
-                sleep(tp)
-        else:
-            log.error("Failed to call method. Exhausted retries, Exiting.")
-            exit(1)
+        _call_method(args.call)
 
     log.info("Exiting.")
     exit()
