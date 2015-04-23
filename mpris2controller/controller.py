@@ -23,6 +23,7 @@ import dbus.service
 from dbus.exceptions import DBusException
 from gobject import MainLoop
 import sys
+import os
 import logging
 
 log = logging.getLogger(__name__)
@@ -174,9 +175,9 @@ def _parse_args(options=None):
         error_handler = logging.StreamHandler(sys.stderr)
         log.addHandler(error_handler)
 
-    if args.no_fork and args.call is not None:
-        log.error("Cannot specify method with --no-fork. Exiting.")
-        exit(1)
+    # if args.no_fork and args.call is not None:
+    #     log.error("Cannot specify method with --no-fork. Exiting.")
+    #     exit(1)
 
     return args
 
@@ -188,7 +189,6 @@ def _start_daemon():
 
 
 def _fork_daemon(debug=False):
-    import os
     log.info("Forking to new process.")
     child_1 = os.fork()
     if child_1 == 0:
@@ -223,7 +223,7 @@ def entry_point(options=None, nofork=True):
             if args.call is not None:
                 def _callback(count=0):
                     count += 1
-                    return not (_call_method() or count > 5)
+                    return not (_call_method(args.call) or count > 5)
                 from gobject import timeout_add
                 timeout_add(400, _callback)
 
@@ -245,7 +245,14 @@ def entry_point(options=None, nofork=True):
         log.info("Daemon already running.")
 
     if args.call is not None:
-        _call_method(args.call)
+        log.debug("Forking second process to call method on daemon")
+        child_2 = os.fork()
+        if child_2 == 0:
+            _call_method(args.call)
+            exit()
+        else:
+            log.debug("Exiting parent")
+            exit()
 
     log.info("Exiting.")
     exit()
