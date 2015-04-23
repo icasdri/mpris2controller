@@ -5,3 +5,4 @@ Exec=mpris2controller
 Terminal=false
 Type=Application
 NoDisplay=true
+Hidden=true

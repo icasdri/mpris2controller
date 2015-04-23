@@ -161,7 +161,7 @@ def _parse_args(options=None):
                           help="calls method (PlayPause, Next, or Previous) on daemon, starting it if necessary"
                                "(note: cannot be used with --no-fork)")
     a_parser.add_argument('--no-fork', '--nofork', '--foreground', action='store_true',
-                          help="prevent daemon from spawning in background")
+                          help="prevent daemon from forking to background")
     a_parser.add_argument('--version', action='version', version="%(prog)s v{}".format(VERSION))
     a_parser.add_argument('--debug', action='store_true')
 
