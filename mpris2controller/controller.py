@@ -45,7 +45,7 @@ def is_mpris_player(name):
 
 
 class Controller(dbus.service.Object):
-    def __init__(self, bus):
+    def __init__(self, bus, call=None):
         self.bus = bus
 
         bus_name = dbus.service.BusName(MY_BUS_NAME, bus=self.bus)
@@ -73,6 +73,12 @@ class Controller(dbus.service.Object):
                 self.markas_playing(name)
             else:
                 self.markas_not_playing(name)
+
+        if call is not None:
+            try:
+                getattr(self, call)()
+            except AttributeError:
+                log.error("Method name {} given on start is not valid.".format(call))
 
     def handle_signal_properties_changed(self, interface, props, sig, sender=None):
         if interface == MPRIS_INTERFACE:
@@ -182,13 +188,13 @@ def _parse_args(options=None):
     return args
 
 
-def _start_daemon():
+def _start_daemon(call=None):
     log.info("Starting the daemon.")
-    Controller(dbus.SessionBus())
+    Controller(dbus.SessionBus(), call=call)
     MainLoop().run()
 
 
-def _fork_daemon(debug=False):
+def _fork_daemon(debug=False, call=None):
     log.info("Forking to new process.")
     child_1 = os.fork()
     if child_1 == 0:
@@ -199,60 +205,34 @@ def _fork_daemon(debug=False):
             os.close(0)
             os.close(1)
             os.close(2)
-        _start_daemon()
+        _start_daemon(call=call)
         exit(1)  # Do not continue running non-daemon code if mainloop exits
+
+
+def _daemon_up():
+    return dbus.SessionBus().name_has_owner(MY_BUS_NAME)
 
 
 def _call_method(method_name):
     try:
         log.info("Calling method {} on daemon.".format(method_name))
         getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), method_name)()
-        return True
     except DBusException as ex:
-        log.error("{}\nFailed to call method {}.".format(ex, method_name))
-        return False
-
-def _daemon_up():
-    return dbus.SessionBus().name_has_owner(MY_BUS_NAME)
+        log.error("{}\nFailed to call method {}. Check that the method name "
+                  "is spelled correctly.\n".format(ex, method_name))
 
 
 def entry_point(options=None, nofork=True):
     args = _parse_args(options)
     if not _daemon_up():
         if nofork or args.no_fork:
-            if args.call is not None:
-                def _callback(count=0):
-                    count += 1
-                    return not (_call_method(args.call) or count > 5)
-                from gobject import timeout_add
-                timeout_add(400, _callback)
-
-            _start_daemon()
+            _start_daemon(call=args.call)
         else:
-            _fork_daemon(debug=args.debug)
-            # Wait for daemon to come up
-            for wait in (0.2, 0.3, 0.4, 0.4, 1.2, 2.3):
-                log.debug("Waiting for daemon to be up...")
-                sleep(wait)
-                if _daemon_up():
-                    log.debug("Daemon is up!")
-                    sleep(0.2)
-                    break
-            else:
-                log.error("Daemon failed to come up after several retries. Exiting")
-                exit(1)
+            _fork_daemon(debug=args.debug, call=args.call)
     else:
         log.info("Daemon already running.")
-
-    if args.call is not None:
-        log.debug("Forking second process to call method on daemon")
-        child_2 = os.fork()
-        if child_2 == 0:
+        if args.call is not None:
             _call_method(args.call)
-            exit()
-        else:
-            log.debug("Exiting parent")
-            exit()
 
     log.info("Exiting.")
     exit()
