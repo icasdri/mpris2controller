@@ -14,8 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from time import sleep
-
 __author__ = "icasdri"
 
 import dbus
@@ -78,22 +76,20 @@ class Controller(dbus.service.Object):
             try:
                 getattr(self, call)()
             except AttributeError:
-                log.error("Method name {} given on start is not valid.".format(call))
+                log.error("Method name %s given on start is not valid.", call)
 
     def handle_signal_properties_changed(self, interface, props, sig, sender=None):
         if interface == MPRIS_INTERFACE:
             if "PlaybackStatus" in props:
-                log.info("Received PropertiesChanged signal with PlaybackStatus from {}.".format(sender))
+                log.info("Received PropertiesChanged signal with PlaybackStatus from %s.", sender)
                 if props["PlaybackStatus"] == "Playing":
                     self.markas_playing(sender)
                 else:
                     self.markas_not_playing(sender)
 
     def handle_signal_name_change(self, name, old_owner, new_owner):
-        # if self.players.has(name) and self.players.has(old_name) and new_name == "":
-        #print(name, ":", old_name, "is now", new_name)
         if new_owner == "":
-            log.info("Received NameOwnerChange signal from bus daemon. Owner of {} lost.".format(name))
+            log.info("Received NameOwnerChange signal from bus daemon. Owner of %s lost.", name)
             self.remove(name)
 
     def markas_playing(self, name):
@@ -104,14 +100,14 @@ class Controller(dbus.service.Object):
             pass
         if name not in self.playing:
             self.playing.add(name)
-            log.info("{} marked as playing".format(name))
+            log.info("%s marked as playing.", name)
 
     def markas_not_playing(self, name):
         # Add to back of non-playing
         self.playing.discard(name)
         if name not in self.not_playing:
             self.not_playing.append(name)
-            log.info("{} marked as not playing".format(name))
+            log.info("%s marked as not playing.", name)
 
     def remove(self, name):
         try:
@@ -181,10 +177,6 @@ def _parse_args(options=None):
         error_handler = logging.StreamHandler(sys.stderr)
         log.addHandler(error_handler)
 
-    # if args.no_fork and args.call is not None:
-    #     log.error("Cannot specify method with --no-fork. Exiting.")
-    #     exit(1)
-
     return args
 
 
@@ -215,11 +207,11 @@ def _daemon_up():
 
 def _call_method(method_name):
     try:
-        log.info("Calling method {} on daemon.".format(method_name))
+        log.info("Calling method %s on daemon.", method_name)
         getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), method_name)()
     except DBusException as ex:
-        log.error("{}\nFailed to call method {}. Check that the method name "
-                  "is spelled correctly.\n".format(ex, method_name))
+        log.error("%s\nFailed to call method %s. Check that the method name "
+                  "is spelled correctly.\n", ex, method_name)
 
 
 def entry_point(options=None, nofork=True):
