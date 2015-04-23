@@ -79,6 +79,7 @@ class Controller(dbus.service.Object):
                 log.error("Method name %s given on start is not valid.", call)
 
     def handle_signal_properties_changed(self, interface, props, sig, sender=None):
+        del sig
         if interface == MPRIS_INTERFACE:
             if "PlaybackStatus" in props:
                 log.info("Received PropertiesChanged signal with PlaybackStatus from %s.", sender)
@@ -88,6 +89,7 @@ class Controller(dbus.service.Object):
                     self.markas_not_playing(sender)
 
     def handle_signal_name_change(self, name, old_owner, new_owner):
+        del old_owner
         if new_owner == "":
             log.info("Received NameOwnerChange signal from bus daemon. Owner of %s lost.", name)
             self.remove(name)
