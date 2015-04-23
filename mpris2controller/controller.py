@@ -187,11 +187,18 @@ def _start_daemon():
     MainLoop().run()
 
 
-def _fork_daemon():
-    from os import fork
+def _fork_daemon(debug=False):
+    import os
     log.info("Forking to new process.")
-    child_1 = fork()
+    child_1 = os.fork()
     if child_1 == 0:
+        # Daemon best practices: http://www.linuxprofilm.com/articles/linux-daemon-howto.html
+        os.umask(0)
+        os.chdir(r'/')
+        if not debug:
+            os.close(0)
+            os.close(1)
+            os.close(2)
         _start_daemon()
         exit(1)  # Do not continue running non-daemon code if mainloop exits
 
@@ -222,7 +229,7 @@ def entry_point(options=None, nofork=True):
 
             _start_daemon()
         else:
-            _fork_daemon()
+            _fork_daemon(debug=args.debug)
     else:
         log.info("Daemon already running.")
 
