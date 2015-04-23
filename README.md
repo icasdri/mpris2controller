@@ -46,6 +46,9 @@ To allow for autostarting the daemon, however, the installation includes a disab
 
 If for some reason, this does not start mpris2controller with your desktop, please consult your desktop environment's documentation for autostarting applications: set `mpris2controller --no-fork` to autostart.
 
+##### user-python-daemon
+mpris2controller can also run as part of [user-python-daemon](https://github.com/icasdri/user-python-daemon). Simply add `[mpris2controller.controller]` to your `user_python_daemon.conf`.
+
 ### Multimedia keys
 
 To control the daemon via mutlimedia keys add keyboard shortcuts that bind your multimedia keys to the commands listed at the beginning of the Usage section.
