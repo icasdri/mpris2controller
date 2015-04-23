@@ -231,9 +231,12 @@ def entry_point(options=None, nofork=True):
         else:
             _fork_daemon(debug=args.debug)
             # Wait for daemon to come up
-            for wait in (200, 300, 300, 400, 1200, 2300):
+            for wait in (0.2, 0.3, 0.4, 0.4, 1.2, 2.3):
+                log.debug("Waiting for daemon to be up...")
                 sleep(wait)
                 if _daemon_up():
+                    log.debug("Daemon is up!")
+                    sleep(0.2)
                     break
             else:
                 log.error("Daemon failed to come up after several retries. Exiting")
