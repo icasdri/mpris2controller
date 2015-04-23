@@ -27,7 +27,7 @@ import logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-VERSION = 0.3
+VERSION = 0.6
 DESCRIPTION = "A small user daemon for GNU/Linux that intelligently controls MPRIS2-compatible media players"
 
 MY_BUS_NAME = "org.icasdri.mpris2controller"
