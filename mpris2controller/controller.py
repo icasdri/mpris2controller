@@ -19,7 +19,6 @@ __author__ = "icasdri"
 import dbus
 import dbus.service
 from dbus.exceptions import DBusException
-from gobject import MainLoop
 import sys
 import os
 import logging
@@ -183,6 +182,7 @@ def _parse_args(options=None):
 
 
 def _start_daemon(call=None):
+    from gi.repository.GObject import MainLoop
     log.info("Starting the daemon.")
     Controller(dbus.SessionBus(), call=call)
     MainLoop().run()
