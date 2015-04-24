@@ -13,6 +13,7 @@ The daemon accomplishes this by keeping track of the playback status of all MPRI
 This daemon alleviates the problem of only being able to have keybindings for one specific player. It also avoids the problems plaguing other implementations (Desktop plugins, etc.) with all players playing at once, etc.
 
 ## Installation
+[![Code Health](https://landscape.io/github/icasdri/mpris2controller/master/landscape.svg?style=flat-square)](https://landscape.io/github/icasdri/mpris2controller/master)
 **mpris2controller** is writen in Python 3, and requires the python 3 versions of the following dependencies:
 * `dbus-python` (packaged as `python-dbus` on some distributions)
 * `python-gobject` (for the glib mainloop)
