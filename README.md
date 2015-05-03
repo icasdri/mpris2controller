@@ -51,7 +51,7 @@ mpris2controller can also run as part of [user-python-daemon](https://github.com
 
 ### Multimedia keys
 
-To control the daemon via mutlimedia keys add keyboard shortcuts that bind your multimedia keys to the commands listed at the beginning of the Usage section.
+To control the daemon via mutlimedia keys, add keyboard shortcuts that bind your multimedia keys to the commands listed at the beginning of the Usage section.
 
 Detailed instructions for [GNOME](http://gnome.org), [i3](http://i3wm.org), and [XFCE](http://xfce.org) are provided below for convenience. For users of other Desktop Environments or Window Managers, follow your DE or WM's documentation for adding keyboard shortcuts.
 
@@ -78,7 +78,9 @@ Click on the Add button towards the bottom, enter one of the commands listed at 
 The daemon can also be controlled via methods exposed on  the [DBus](http://www.freedesktop.org/wiki/Software/dbus/) session bus.
 
 *Bus Address*: `org.icasdri.mpris2controller`
+
 *Interface*: `/org/icasdri/mpris2controller`
+
 *Methods*:
 * `org.icasdri.mpris2controller.PlayPause`
 * `org.icasdri.mpris2controller.Next`
