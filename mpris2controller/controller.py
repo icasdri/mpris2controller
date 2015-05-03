@@ -216,10 +216,15 @@ def _call_method(method_name):
                   "is spelled correctly.\n", ex, method_name)
 
 
-def entry_point(options=None, nofork=True):
+def entry_point(options=None):
     args = _parse_args(options)
+    Controller(dbus.SessionBus(), call=args.call)
+
+
+def main():
+    args = _parse_args()
     if not _daemon_up():
-        if nofork or args.no_fork:
+        if args.no_fork:
             _start_daemon(call=args.call)
         else:
             _fork_daemon(debug=args.debug, call=args.call)
@@ -233,12 +238,6 @@ def entry_point(options=None, nofork=True):
 
     log.info("Exiting.")
     exit()
-
-
-def main():
-    from dbus.mainloop.glib import DBusGMainLoop
-    DBusGMainLoop(set_as_default=True)
-    entry_point(nofork=False)
 
 
 if __name__ == "__main__":
