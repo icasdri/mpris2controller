@@ -227,6 +227,9 @@ def entry_point(options=None, nofork=True):
         log.info("Daemon already running.")
         if args.call is not None:
             _call_method(args.call)
+        else:
+            # Notify user with message that daemon is already running
+            print("Daemon is already running.")
 
     log.info("Exiting.")
     exit()
