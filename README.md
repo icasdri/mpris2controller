@@ -56,7 +56,7 @@ To control the daemon via mutlimedia keys, add keyboard shortcuts that bind your
 Detailed instructions for [GNOME](http://gnome.org), [i3](http://i3wm.org), and [XFCE](http://xfce.org) are provided below for convenience. For users of other Desktop Environments or Window Managers, follow your DE or WM's documentation for adding keyboard shortcuts.
 
 ##### GNOME
-For [GNOME](http://gnome.org) useres, open GNOME Control Center, got to Keyboard, then Shortcuts. Or execute `gnome-control-center keyboard shortcuts`.
+For [GNOME](http://gnome.org) useres, open GNOME Control Center, go to Keyboard, then Shortcuts. Or execute `gnome-control-center keyboard shortcuts`.
 
 Then go to Custom Shortcuts, then the "+" sign at the bottom. Give it any descriptive name, then give it one of the commands listed at the beginning of the Usage section. Finally, click "Disabled" in the second column next to the shortcut you just created, and press your respective multimedia key.
 
@@ -77,12 +77,10 @@ Click on the Add button towards the bottom, enter one of the commands listed at 
 ### DBus
 The daemon can also be controlled via methods exposed on  the [DBus](http://www.freedesktop.org/wiki/Software/dbus/) session bus.
 
-*Bus Address*: `org.icasdri.mpris2controller`
-
-*Interface*: `/org/icasdri/mpris2controller`
-
-*Methods*:
-* `org.icasdri.mpris2controller.PlayPause`
-* `org.icasdri.mpris2controller.Next`
-* `org.icasdri.mpris2controller.Previoius`
+* *Bus Address*: `org.icasdri.mpris2controller`
+* *Interface*: `/org/icasdri/mpris2controller`
+* *Methods*:
+    * `org.icasdri.mpris2controller.PlayPause`
+    * `org.icasdri.mpris2controller.Next`
+    * `org.icasdri.mpris2controller.Previoius`
 
