@@ -223,6 +223,10 @@ def entry_point(options=None):
 
 def main():
     args = _parse_args()
+
+    from dbus.mainloop.glib import DBusGMainLoop
+    DBusGMainLoop(set_as_default=True)
+
     if not _daemon_up():
         if args.no_fork:
             _start_daemon(call=args.call)
