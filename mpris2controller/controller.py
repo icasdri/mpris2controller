@@ -117,10 +117,15 @@ class Controller(dbus.service.Object):
         except ValueError:
             pass
 
+    def _call_on_player(self, player, method_name):
+        getattr(dbus.Interface(
+            self.bus.get_object(player, MPRIS_PATH),
+            dbus_interface=MPRIS_INTERFACE), method_name)()
+
     def call_on_all_playing(self, method_name):
         # Loops through all in playing and calls method
         for n in self.playing:
-            getattr(self.bus.get_object(n, MPRIS_PATH), method_name)()
+            self._call_on_player(n, method_name)
 
     def call_on_one_playing(self, method_name):
         # Calls on one in playing, only if there is only one playing
@@ -130,7 +135,7 @@ class Controller(dbus.service.Object):
     def call_on_head_not_playing(self, method_name):
         # Pops/peeks first off back of non-playing and calls method
         if len(self.not_playing) > 0:
-            getattr(self.bus.get_object(self.not_playing[-1], MPRIS_PATH), method_name)()
+            self._call_on_player(self.not_playing[-1], method_name)
 
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def PlayPause(self):
