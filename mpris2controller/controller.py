@@ -88,10 +88,22 @@ class Controller(dbus.service.Object):
                     self.markas_not_playing(sender)
 
     def handle_signal_name_change(self, name, old_owner, new_owner):
-        del old_owner
         if new_owner == "":
             log.info("Received NameOwnerChange signal from bus daemon. Owner of %s lost.", name)
             self.remove(name)
+        elif old_owner != "":
+            log.info("Received NameOwnerChange signal from bus daemon. %s is now %s.", old_owner, new_owner)
+            try:
+                player_index = self.not_playing.index(old_owner)
+                self.not_playing[player_index] = new_owner
+            except ValueError:
+                try:
+                    self.playing.remove(old_owner)
+                    self.playing.add(new_owner)
+                except ValueError:
+                    # Then this isn't a player we're tracking, and it's not our concern
+                    pass
+
 
     def markas_playing(self, name):
         # Add to playing
