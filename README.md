@@ -82,5 +82,5 @@ The daemon can also be controlled via methods exposed on  the [DBus](http://www.
 * *Methods*:
     * `org.icasdri.mpris2controller.PlayPause`
     * `org.icasdri.mpris2controller.Next`
-    * `org.icasdri.mpris2controller.Previoius`
+    * `org.icasdri.mpris2controller.Previous`
 
