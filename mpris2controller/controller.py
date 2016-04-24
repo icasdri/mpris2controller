@@ -16,10 +16,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = "icasdri"
 
+from contextlib import suppress
+
 import dbus
 import dbus.service
 
 from mpris2controller import log, MPRIS_PATH, MPRIS_INTERFACE, MY_BUS_NAME, MY_PATH, MY_INTERFACE
+
+remove_if_there = suppress(ValueError)
 
 def is_mpris_player(name):
     return name.startswith("org.mpris.MediaPlayer2")
@@ -80,20 +84,15 @@ class Controller(dbus.service.Object):
                 player_index = self.not_playing.index(old_owner)
                 self.not_playing[player_index] = new_owner
             except ValueError:
-                try:
+                with remove_if_there:
                     self.playing.remove(old_owner)
                     self.playing.add(new_owner)
-                except ValueError:
-                    # Then this isn't a player we're tracking, and it's not our concern
-                    pass
 
 
     def markas_playing(self, name):
         # Add to playing
-        try:
+        with remove_if_there:
             self.not_playing.remove(name)
-        except ValueError:
-            pass
         if name not in self.playing:
             self.playing.add(name)
             log.info("%s marked as playing.", name)
@@ -106,11 +105,9 @@ class Controller(dbus.service.Object):
             log.info("%s marked as not playing.", name)
 
     def remove(self, name):
-        try:
+        with remove_if_there:
             self.not_playing.remove(name)
             self.playing.discard(name)
-        except ValueError:
-            pass
 
     def _call_on_player(self, player, method_name):
         getattr(dbus.Interface(
