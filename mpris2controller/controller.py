@@ -1,4 +1,4 @@
-# Copyright 2014 icasdri
+# Copyright 2014-2016 icasdri
 #
 # This file is part of mpris2controller.
 #
@@ -18,27 +18,11 @@ __author__ = "icasdri"
 
 import dbus
 import dbus.service
-from dbus.exceptions import DBusException
-import sys
-import os
-import logging
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
-
-VERSION = 0.6
-DESCRIPTION = "A small user daemon for GNU/Linux that intelligently controls MPRIS2-compatible media players"
-
-MY_BUS_NAME = "org.icasdri.mpris2controller"
-MY_PATH = "/org/icasdri/mpris2controller"
-MY_INTERFACE = MY_BUS_NAME
-
-MPRIS_PATH = "/org/mpris/MediaPlayer2"
-MPRIS_INTERFACE = "org.mpris.MediaPlayer2.Player"
-
+from mpris2controller import log, MPRIS_PATH, MPRIS_INTERFACE, MY_BUS_NAME, MY_PATH, MY_INTERFACE
 
 def is_mpris_player(name):
-    return name.find("org.mpris.MediaPlayer2") == 0
+    return name.startswith("org.mpris.MediaPlayer2")
 
 
 class Controller(dbus.service.Object):
@@ -52,7 +36,6 @@ class Controller(dbus.service.Object):
             signal_name="PropertiesChanged",
             handler_function=self.handle_signal_properties_changed,
             path=MPRIS_PATH,
-            # dbus_interface=MPRIS_INTERFACE, # This doesn't seem to work for some reason
             sender_keyword='sender')
         self.bus.add_signal_receiver(
             signal_name="NameOwnerChanged",
@@ -167,100 +150,4 @@ class Controller(dbus.service.Object):
         log.info("Method call for Previous!")
         self.call_on_one_playing("Previous")
 
-
-def _parse_args(options=None):
-    import argparse
-
-    a_parser = argparse.ArgumentParser(prog="mpris2controller",
-                                       description=DESCRIPTION)
-    a_parser.add_argument('call', nargs='?', metavar='METHOD',
-                          help="calls method (PlayPause, Next, or Previous) on daemon, starting it if necessary"
-                               "(note: cannot be used with --no-fork)")
-    a_parser.add_argument('--no-fork', '--nofork', '--foreground', action='store_true',
-                          help="prevent daemon from forking to background")
-    a_parser.add_argument('--version', action='version', version="%(prog)s v{}".format(VERSION))
-    a_parser.add_argument('--debug', action='store_true')
-
-    if options is None:
-        args = a_parser.parse_args()
-    else:
-        args = a_parser.parse_args(options)
-
-    if args.debug:
-        log.setLevel(logging.DEBUG)
-        handler = logging.StreamHandler(sys.stdout)
-        log.addHandler(handler)
-    else:
-        log.setLevel(logging.WARNING)
-        error_handler = logging.StreamHandler(sys.stderr)
-        log.addHandler(error_handler)
-
-    return args
-
-
-def _start_daemon(call=None):
-    from gi.repository.GObject import MainLoop
-    log.info("Starting the daemon.")
-    Controller(dbus.SessionBus(), call=call)
-    MainLoop().run()
-
-
-def _fork_daemon(debug=False, call=None):
-    log.info("Forking to new process.")
-    child_1 = os.fork()
-    if child_1 == 0:
-        # Daemon best practices: http://www.linuxprofilm.com/articles/linux-daemon-howto.html
-        os.umask(0)
-        os.chdir(r'/')
-        if not debug:
-            os.close(0)
-            os.close(1)
-            os.close(2)
-        _start_daemon(call=call)
-        exit(1)  # Do not continue running non-daemon code if mainloop exits
-
-
-def _daemon_up():
-    return dbus.SessionBus().name_has_owner(MY_BUS_NAME)
-
-
-def _call_method(method_name):
-    try:
-        log.info("Calling method %s on daemon.", method_name)
-        getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), method_name)()
-    except DBusException as ex:
-        log.error("%s\nFailed to call method %s. Check that the method name "
-                  "is spelled correctly.\n", ex, method_name)
-
-
-def entry_point(options=None):
-    args = _parse_args(options)
-    Controller(dbus.SessionBus(), call=args.call)
-
-
-def main():
-    args = _parse_args()
-
-    from dbus.mainloop.glib import DBusGMainLoop
-    DBusGMainLoop(set_as_default=True)
-
-    if not _daemon_up():
-        if args.no_fork:
-            _start_daemon(call=args.call)
-        else:
-            _fork_daemon(debug=args.debug, call=args.call)
-    else:
-        log.info("Daemon already running.")
-        if args.call is not None:
-            _call_method(args.call)
-        else:
-            # Notify user with message that daemon is already running
-            print("Daemon is already running.")
-
-    log.info("Exiting.")
-    exit()
-
-
-if __name__ == "__main__":
-    main()
 

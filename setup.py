@@ -1,4 +1,4 @@
-# Copyright 2014 icasdri
+# Copyright 2014-2016 icasdri
 #
 # This file is part of mpris2controller.
 #
@@ -20,7 +20,7 @@ from mpris2controller.controller import VERSION, DESCRIPTION
 
 setup(
     name='mpris2controller',
-    version=str(VERSION),
+    version=VERSION,
     license='GPL3',
     author='icasdri',
     author_email='icasdri@gmail.com',
