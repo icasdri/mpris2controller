@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 __author__ = "icasdri"
 from distutils.core import setup
-from mpris2controller.controller import VERSION, DESCRIPTION
+from mpris2controller import VERSION, DESCRIPTION
 
 setup(
     name='mpris2controller',
