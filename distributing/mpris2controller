@@ -19,5 +19,5 @@ __author__ = 'icasdri'
 
 # mpris2controller main script
 if __name__ == "__main__":
-    from mpris2controller.controller import main
+    from mpris2controller.daemon import main
     main()
