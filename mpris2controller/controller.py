@@ -20,6 +20,7 @@ from contextlib import suppress
 
 import dbus
 import dbus.service
+from dbus.exceptions import DBusException
 
 from mpris2controller import log, MPRIS_PATH, MPRIS_INTERFACE, MY_BUS_NAME, MY_PATH, MY_INTERFACE
 
@@ -106,18 +107,32 @@ class Controller(dbus.service.Object):
 
     def remove(self, name):
         with remove_if_there:
-            self.not_playing.remove(name)
             self.playing.discard(name)
+            self.not_playing.remove(name)
 
     def _call_on_player(self, player, method_name):
-        getattr(dbus.Interface(
-            self.bus.get_object(player, MPRIS_PATH),
-            dbus_interface=MPRIS_INTERFACE), method_name)()
+        try:
+            getattr(dbus.Interface(
+                self.bus.get_object(player, MPRIS_PATH),
+                dbus_interface=MPRIS_INTERFACE), method_name)()
+            return True
+        except DBusException as ex:
+            if "org.freedesktop.DBus.Error.ServiceUnknown" == ex.get_dbus_name():
+                log.info("Expired or nonexistant service: %s", str(player))
+                return False
+            else:
+                raise
 
     def call_on_all_playing(self, method_name):
         # Loops through all in playing and calls method
+        expired = set()
         for n in self.playing:
-            self._call_on_player(n, method_name)
+            if not self._call_on_player(n, method_name):
+                expired.add(n)
+
+        # Not all clients correctly deregister, so we have to manually cleanup
+        for player in expired:
+            self.remove(player)
 
     def call_on_one_playing(self, method_name):
         # Calls on one in playing, only if there is only one playing
@@ -126,8 +141,12 @@ class Controller(dbus.service.Object):
 
     def call_on_head_not_playing(self, method_name):
         # Pops/peeks first off back of non-playing and calls method
-        if len(self.not_playing) > 0:
-            self._call_on_player(self.not_playing[-1], method_name)
+        while len(self.not_playing) > 0:
+            cur = self.not_playing[-1]
+            if self._call_on_player(cur, method_name):
+                return
+            else:
+                self.remove(cur)
 
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def PlayPause(self):
