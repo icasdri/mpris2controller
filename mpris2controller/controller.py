@@ -14,7 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-__author__ = "icasdri"
 
 from contextlib import suppress
 
@@ -22,9 +21,11 @@ import dbus
 import dbus.service
 from dbus.exceptions import DBusException
 
-from mpris2controller import log, MPRIS_PATH, MPRIS_INTERFACE, MY_BUS_NAME, MY_PATH, MY_INTERFACE
+from mpris2controller import (log, MPRIS_PATH, MPRIS_INTERFACE,
+                              MY_BUS_NAME, MY_PATH, MY_INTERFACE)
 
 remove_if_there = suppress(ValueError)
+
 
 def is_mpris_player(name):
     return name.startswith("org.mpris.MediaPlayer2")
@@ -54,7 +55,9 @@ class Controller(dbus.service.Object):
         log.info("Detecting players already on bus...")
         for well_known_name in filter(is_mpris_player, bus.list_names()):
             name = self.bus.get_name_owner(well_known_name)
-            if self.bus.get_object(name, MPRIS_PATH).Get(MPRIS_INTERFACE, "PlaybackStatus") == "Playing":
+            status = self._get_player(name).Get(MPRIS_INTERFACE,
+                                                "PlaybackStatus")
+            if status == "Playing":
                 self.markas_playing(name)
             else:
                 self.markas_not_playing(name)
@@ -65,11 +68,12 @@ class Controller(dbus.service.Object):
             except AttributeError:
                 log.error("Method name %s given on start is not valid.", call)
 
-    def handle_signal_properties_changed(self, interface, props, sig, sender=None):
+    def handle_signal_properties_changed(self, interface, props,
+                                         sig, sender=None):
         del sig
         if interface == MPRIS_INTERFACE:
             if "PlaybackStatus" in props:
-                log.info("Received PropertiesChanged signal with PlaybackStatus from %s.", sender)
+                log.info("PlaybackStatus PropertiesChanged from %s.", sender)
                 if props["PlaybackStatus"] == "Playing":
                     self.markas_playing(sender)
                 else:
@@ -77,10 +81,10 @@ class Controller(dbus.service.Object):
 
     def handle_signal_name_change(self, name, old_owner, new_owner):
         if new_owner == "":
-            log.info("Received NameOwnerChange signal from bus daemon. Owner of %s lost.", name)
+            log.info("NameOwnerChange: Owner of %s lost.", name)
             self.remove(name)
         elif old_owner != "":
-            log.info("Received NameOwnerChange signal from bus daemon. %s is now %s.", old_owner, new_owner)
+            log.info("NameOwnerChange: %s is now %s.", old_owner, new_owner)
             try:
                 player_index = self.not_playing.index(old_owner)
                 self.not_playing[player_index] = new_owner
@@ -88,7 +92,6 @@ class Controller(dbus.service.Object):
                 with remove_if_there:
                     self.playing.remove(old_owner)
                     self.playing.add(new_owner)
-
 
     def markas_playing(self, name):
         # Add to playing
@@ -110,15 +113,19 @@ class Controller(dbus.service.Object):
             self.playing.discard(name)
             self.not_playing.remove(name)
 
+    def _get_player(self, player):
+        return dbus.Interface(
+                    self.bus.get_object(player, MPRIS_PATH),
+                    dbus_interface=MPRIS_INTERFACE)
+
     def _call_on_player(self, player, method_name):
         try:
-            getattr(dbus.Interface(
-                self.bus.get_object(player, MPRIS_PATH),
-                dbus_interface=MPRIS_INTERFACE), method_name)()
+            getattr(self._get_player(player), method_name)()
             return True
-        except DBusException as ex:
-            if "org.freedesktop.DBus.Error.ServiceUnknown" == ex.get_dbus_name():
-                log.info("Expired or nonexistant service: %s", str(player))
+        except DBusException as e:
+            if e.get_dbus_name() == \
+                    "org.freedesktop.DBus.Error.ServiceUnknown":
+                log.info("ServiceUnknown: %s expired", player)
                 return False
             else:
                 raise
@@ -165,5 +172,3 @@ class Controller(dbus.service.Object):
     def Previous(self):
         log.info("Method call for Previous!")
         self.call_on_one_playing("Previous")
-
-
