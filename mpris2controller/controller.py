@@ -30,6 +30,11 @@ from mpris2controller import (
 remove_if_there = suppress(ValueError)
 
 
+def throwaway(*pos, **kwargs):
+    # signal handler that does absolutely nothing
+    pass
+
+
 def is_mpris_player(name):
     return name.startswith("org.mpris.MediaPlayer2")
 
@@ -44,7 +49,8 @@ class Player:
 
     def call(self, method_name):
         f = dbus.Interface(self.obj, dbus_interface=MPRIS_INTERFACE)
-        getattr(f, method_name)()
+        getattr(f, method_name)(reply_handler=throwaway,
+                                error_handler=throwaway)
 
 
 class Controller(dbus.service.Object):
