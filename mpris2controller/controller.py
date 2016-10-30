@@ -21,14 +21,30 @@ import dbus
 import dbus.service
 from dbus.exceptions import DBusException
 
-from mpris2controller import (log, MPRIS_PATH, MPRIS_INTERFACE,
-                              MY_BUS_NAME, MY_PATH, MY_INTERFACE)
+from mpris2controller import (
+    log,
+    MPRIS_PATH, MPRIS_INTERFACE, PROPERTIES_INTERFACE,
+    MY_BUS_NAME, MY_PATH, MY_INTERFACE
+)
 
 remove_if_there = suppress(ValueError)
 
 
 def is_mpris_player(name):
     return name.startswith("org.mpris.MediaPlayer2")
+
+
+class Player:
+    def __init__(self, bus, name):
+        self.obj = bus.get_object(name, MPRIS_PATH)
+
+    def get(self, prop_name):
+        f = dbus.Interface(self.obj, dbus_interface=PROPERTIES_INTERFACE)
+        return f.Get("org.mpris.MediaPlayer2.Player", prop_name)
+
+    def call(self, method_name):
+        f = dbus.Interface(self.obj, dbus_interface=MPRIS_INTERFACE)
+        getattr(f, method_name)()
 
 
 class Controller(dbus.service.Object):
@@ -55,8 +71,7 @@ class Controller(dbus.service.Object):
         log.info("Detecting players already on bus...")
         for well_known_name in filter(is_mpris_player, bus.list_names()):
             name = self.bus.get_name_owner(well_known_name)
-            status = self._get_player(name).Get(MPRIS_INTERFACE,
-                                                "PlaybackStatus")
+            status = Player(self.bus, name).get("PlaybackStatus")
             if status == "Playing":
                 self.markas_playing(name)
             else:
@@ -113,14 +128,9 @@ class Controller(dbus.service.Object):
             self.playing.discard(name)
             self.not_playing.remove(name)
 
-    def _get_player(self, player):
-        return dbus.Interface(
-                    self.bus.get_object(player, MPRIS_PATH),
-                    dbus_interface=MPRIS_INTERFACE)
-
     def _call_on_player(self, player, method_name):
         try:
-            getattr(self._get_player(player), method_name)()
+            Player(self.bus, player).call(method_name)
             return True
         except DBusException as e:
             if e.get_dbus_name() == \

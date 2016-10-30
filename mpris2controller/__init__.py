@@ -14,13 +14,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-__author__ = 'icasdri'
 
 import logging
 log = logging.getLogger("mpris2controller")
 
 VERSION = "0.6"
-DESCRIPTION = "A small user daemon for GNU/Linux that intelligently controls MPRIS2-compatible media players"
+DESCRIPTION = """
+A small user daemon for GNU/Linux that intelligently controls MPRIS2-compatible
+media players
+"""
 
 MY_BUS_NAME = "org.icasdri.mpris2controller"
 MY_PATH = "/org/icasdri/mpris2controller"
@@ -29,4 +31,4 @@ MY_INTERFACE = MY_BUS_NAME
 MPRIS_PATH = "/org/mpris/MediaPlayer2"
 MPRIS_INTERFACE = "org.mpris.MediaPlayer2.Player"
 
-
+PROPERTIES_INTERFACE = "org.freedesktop.DBus.Properties"
