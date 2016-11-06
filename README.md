@@ -56,9 +56,10 @@ To control the daemon via mutlimedia keys, add keyboard shortcuts that bind your
 Detailed instructions for [GNOME](http://gnome.org), [i3](http://i3wm.org), and [XFCE](http://xfce.org) are provided below for convenience. For users of other Desktop Environments or Window Managers, follow your DE or WM's documentation for adding keyboard shortcuts.
 
 ##### GNOME
-For [GNOME](http://gnome.org) useres, open GNOME Control Center, go to Keyboard, then Shortcuts. Or execute `gnome-control-center keyboard shortcuts`.
+For [GNOME](http://gnome.org) useres, open GNOME Control Center, go to Keyboard, then Shortcuts. Or execute `gnome-control-center keyboard shortcuts`. Then...
 
-Then go to Custom Shortcuts, then the "+" sign at the bottom. Give it any descriptive name, then give it one of the commands listed at the beginning of the Usage section. Finally, click "Disabled" in the second column next to the shortcut you just created, and press your respective multimedia key.
+* *GNOME 3.22 and later*: scroll all the way to the bottom and click the "+" sign. Enter any descriptive name and then enter one of the commands listed at the beginning of the Usage section. Finally, click "Set Shortcut" and press your respective multimedia key.
+* *Older GNOME*: go to Custom Shortcuts and click the "+" sign near the bottom. Enter any descriptive name and then enter one of the commands listed at the beginning of the Usage section. Then, click "Add" or "OK" to add the shortcut. Finally, find your newly added shortcut in the list and in the second column click on the text "Disabled", then press your respective multimedia key.
 
 Note: mpris2controller works with the [Media Player Indicator](https://extensions.gnome.org/extension/55/media-player-indicator/) GNOME Shell Extension. GNOME will simply prompt you to override its keybindings when adding the custom shortcuts.
 
