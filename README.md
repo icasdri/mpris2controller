@@ -1,11 +1,11 @@
-# mpris2controller [![Code Health](https://landscape.io/github/icasdri/mpris2controller/master/landscape.svg?style=flat-square)](https://landscape.io/github/icasdri/mpris2controller/master)
+# mpris2controller
 **mpris2controller** is a small user daemon for GNU/Linux written in python that intelligently controls [MPRIS2](http://specifications.freedesktop.org/mpris-spec/latest/)-compatible media players.
 
 The daemon responds to commands/controls via multimedia keys or the terminal, and controls all open media players at once, doing what one would expect.
 * Play/Pause control
 	* Pauses all players if one or more are currently playing, OR
     * Plays the most recently paused player if none are currently playing
-* Next/Previos control
+* Next/Previous control
 	* Advances to the next or previous song only on the player that is playing.
 
 The daemon accomplishes this by keeping track of the playback status of all MPRIS2 players currently active in the user's session.
