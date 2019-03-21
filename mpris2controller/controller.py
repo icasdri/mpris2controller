@@ -54,8 +54,9 @@ class Player:
 
 
 class Controller(dbus.service.Object):
-    def __init__(self, bus, call=None):
+    def __init__(self, bus, loop = None, call=None):
         self.bus = bus
+        self.loop = loop
 
         bus_name = dbus.service.BusName(MY_BUS_NAME, bus=self.bus)
         dbus.service.Object.__init__(self, bus_name, MY_PATH)
@@ -170,6 +171,12 @@ class Controller(dbus.service.Object):
                 return
             else:
                 self.remove(cur)
+
+    @dbus.service.method(dbus_interface=MY_INTERFACE)
+    def StopLoop(self):
+        log.info("Stop main loop")
+        self.loop.quit()
+        log.info("main stoped")
 
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def PlayPause(self):
