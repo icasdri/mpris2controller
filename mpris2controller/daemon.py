@@ -57,9 +57,10 @@ def _parse_args(options=None):
 
 def _start_daemon(call=None):
     from gi.repository.GLib import MainLoop
+    loop = MainLoop()
     log.info("Starting the daemon.")
-    Controller(dbus.SessionBus(), call=call)
-    MainLoop().run()
+    Controller(dbus.SessionBus(), loop=loop, call=call)
+    loop.run()
 
 
 def _fork_daemon(debug=False, call=None):
