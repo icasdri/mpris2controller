@@ -1,4 +1,6 @@
-# Copyright 2014-2016 icasdri
+#!/usr/bin/env python3
+
+# Copyright 2014-2019 icasdri
 #
 # This file is part of mpris2controller.
 #
@@ -15,17 +17,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+import sys
+
+import argparse
 from contextlib import suppress
+import logging
 
 import dbus
 import dbus.service
 from dbus.exceptions import DBusException
 
-from mpris2controller import (
-    log,
-    MPRIS_PATH, MPRIS_INTERFACE, PROPERTIES_INTERFACE,
-    MY_BUS_NAME, MY_PATH, MY_INTERFACE
-)
+log = logging.getLogger('mpris2controller')
+
+VERSION = '0.7'
+
+MY_BUS_NAME = 'org.icasdri.mpris2controller'
+MY_PATH = '/org/icasdri/mpris2controller'
+MY_INTERFACE = MY_BUS_NAME
+
+MPRIS_PATH = '/org/mpris/MediaPlayer2'
+MPRIS_INTERFACE = 'org.mpris.MediaPlayer2.Player'
+
+PROPERTIES_INTERFACE = 'org.freedesktop.DBus.Properties'
 
 remove_if_there = suppress(ValueError)
 
@@ -36,7 +50,7 @@ def throwaway(*pos, **kwargs):
 
 
 def is_mpris_player(name):
-    return name.startswith("org.mpris.MediaPlayer2")
+    return name.startswith('org.mpris.MediaPlayer2')
 
 
 class Player:
@@ -45,7 +59,7 @@ class Player:
 
     def get(self, prop_name):
         f = dbus.Interface(self.obj, dbus_interface=PROPERTIES_INTERFACE)
-        return f.Get("org.mpris.MediaPlayer2.Player", prop_name)
+        return f.Get('org.mpris.MediaPlayer2.Player', prop_name)
 
     def call(self, method_name):
         f = dbus.Interface(self.obj, dbus_interface=MPRIS_INTERFACE)
@@ -62,12 +76,12 @@ class Controller(dbus.service.Object):
         dbus.service.Object.__init__(self, bus_name, MY_PATH)
 
         self.bus.add_signal_receiver(
-            signal_name="PropertiesChanged",
+            signal_name='PropertiesChanged',
             handler_function=self.handle_signal_properties_changed,
             path=MPRIS_PATH,
             sender_keyword='sender')
         self.bus.add_signal_receiver(
-            signal_name="NameOwnerChanged",
+            signal_name='NameOwnerChanged',
             handler_function=self.handle_signal_name_change,
             path=dbus.BUS_DAEMON_PATH,
             bus_name=dbus.BUS_DAEMON_NAME)
@@ -75,11 +89,11 @@ class Controller(dbus.service.Object):
         self.playing = set()
         self.not_playing = []
 
-        log.info("Detecting players already on bus...")
+        log.info('Detecting players already on bus...')
         for well_known_name in filter(is_mpris_player, bus.list_names()):
             name = self.bus.get_name_owner(well_known_name)
-            status = Player(self.bus, name).get("PlaybackStatus")
-            if status == "Playing":
+            status = Player(self.bus, name).get('PlaybackStatus')
+            if status == 'Playing':
                 self.markas_playing(name)
             else:
                 self.markas_not_playing(name)
@@ -88,25 +102,25 @@ class Controller(dbus.service.Object):
             try:
                 getattr(self, call)()
             except AttributeError:
-                log.error("Method name %s given on start is not valid.", call)
+                log.error('Method name %s given on start is not valid.', call)
 
     def handle_signal_properties_changed(self, interface, props,
                                          sig, sender=None):
         del sig
         if interface == MPRIS_INTERFACE:
-            if "PlaybackStatus" in props:
-                log.info("PlaybackStatus PropertiesChanged from %s.", sender)
-                if props["PlaybackStatus"] == "Playing":
+            if 'PlaybackStatus' in props:
+                log.info('PlaybackStatus PropertiesChanged from %s.', sender)
+                if props['PlaybackStatus'] == 'Playing':
                     self.markas_playing(sender)
                 else:
                     self.markas_not_playing(sender)
 
     def handle_signal_name_change(self, name, old_owner, new_owner):
-        if new_owner == "":
-            log.info("NameOwnerChange: Owner of %s lost.", name)
+        if new_owner == '':
+            log.info('NameOwnerChange: Owner of %s lost.', name)
             self.remove(name)
-        elif old_owner != "":
-            log.info("NameOwnerChange: %s is now %s.", old_owner, new_owner)
+        elif old_owner != '':
+            log.info('NameOwnerChange: %s is now %s.', old_owner, new_owner)
             try:
                 player_index = self.not_playing.index(old_owner)
                 self.not_playing[player_index] = new_owner
@@ -121,14 +135,14 @@ class Controller(dbus.service.Object):
             self.not_playing.remove(name)
         if name not in self.playing:
             self.playing.add(name)
-            log.info("%s marked as playing.", name)
+            log.info('%s marked as playing.', name)
 
     def markas_not_playing(self, name):
         # Add to back of non-playing
         self.playing.discard(name)
         if name not in self.not_playing:
             self.not_playing.append(name)
-            log.info("%s marked as not playing.", name)
+            log.info('%s marked as not playing.', name)
 
     def remove(self, name):
         with remove_if_there:
@@ -141,8 +155,8 @@ class Controller(dbus.service.Object):
             return True
         except DBusException as e:
             if e.get_dbus_name() == \
-                    "org.freedesktop.DBus.Error.ServiceUnknown":
-                log.info("ServiceUnknown: %s expired", player)
+                    'org.freedesktop.DBus.Error.ServiceUnknown':
+                log.info('ServiceUnknown: %s expired', player)
                 return False
             else:
                 raise
@@ -174,23 +188,95 @@ class Controller(dbus.service.Object):
 
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def Quit(self):
+        log.info('Method call for Quit.')
         self.loop.quit()
-        log.info("Stop main loop")
 
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def PlayPause(self):
-        log.info("Method call for PlayPause!")
+        log.info('Method call for PlayPause.')
         if len(self.playing) > 0:
-            self.call_on_all_playing("Pause")
+            self.call_on_all_playing('Pause')
         else:
-            self.call_on_head_not_playing("Play")
+            self.call_on_head_not_playing('Play')
 
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def Next(self):
-        log.info("Method call for Next!")
-        self.call_on_one_playing("Next")
+        log.info('Method call for Next.')
+        self.call_on_one_playing('Next')
 
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def Previous(self):
-        log.info("Method call for Previous!")
-        self.call_on_one_playing("Previous")
+        log.info('Method call for Previous.')
+        self.call_on_one_playing('Previous')
+
+
+def is_daemon_up():
+    return dbus.SessionBus().name_has_owner(MY_BUS_NAME)
+
+
+def call_daemon_method(method_name):
+    try:
+        log.info('Calling method %s on daemon.', method_name)
+        getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), method_name)()
+    except DBusException as ex:
+        log.error('%s\nFailed to call method %s. Check that the method name '
+                  'is spelled correctly.\n', ex, method_name)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+            description='A small user daemon that intelligently controls'
+                        'MPRIS2-compatible media players')
+    parser.add_argument('call', nargs='?', metavar='METHOD',
+            help='calls method (PlayPause, Next, or Previous) on daemon, '
+                 'starting it if necessary')
+    parser.add_argument('--no-fork', '--nofork', '--foreground',
+            action='store_true', help='do not fork daemon to the background')
+    parser.add_argument('--version', action='version',
+            version='%(prog)s {}'.format(VERSION))
+    parser.add_argument('--debug', action='store_true',
+            help='print debugging information')
+
+    args = parser.parse_args()
+
+    log.setLevel(logging.DEBUG if args.debug else logging.WARNING)
+    log.addHandler(logging.StreamHandler(sys.stderr))
+
+    from dbus.mainloop.glib import DBusGMainLoop
+    DBusGMainLoop(set_as_default=True)
+
+    def start_daemon():
+        from gi.repository.GLib import MainLoop
+        log.info('Starting the daemon.')
+        Controller(dbus.SessionBus(), call=args.call)
+        MainLoop().run()
+
+    def fork_daemon():
+        log.info('Forking to new process.')
+        child = os.fork()
+        if child == 0:
+            os.umask(0)
+            os.chdir(r'/')
+            if not args.debug:
+                os.close(0)
+                os.close(1)
+                os.close(2)
+            start_daemon()
+            exit(1)  # do not continue running non-daemon code if mainloop exits
+
+    if not is_daemon_up():
+        if args.no_fork:
+            start_daemon()
+        else:
+            fork_daemon()
+    else:
+        log.info('Daemon already running.')
+        if args.call is not None:
+            call_daemon_method(args.call)
+        else:
+            # notify user with message that daemon is already running
+            print('mpris2controller daemon is already running.')
+
+
+if __name__ == '__main__':
+    main()
