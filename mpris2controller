@@ -244,9 +244,10 @@ def main():
 
     def start_daemon():
         from gi.repository.GLib import MainLoop
+        loop = MainLoop()
         log.info('Starting the daemon.')
-        Controller(dbus.SessionBus(), call=args.call)
-        MainLoop().run()
+        Controller(dbus.SessionBus(), loop=loop, call=args.call)
+        loop.run()
 
     def fork_daemon():
         log.info('Forking to new process.')
