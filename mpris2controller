@@ -2,14 +2,12 @@
 
 # Copyright 2014-2019 icasdri
 #
-# This file is part of mpris2controller.
-#
-# mpris2controller is free software: you can redistribute it and/or modify
+# This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# mpris2controller is distributed in the hope that it will be useful,
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -30,7 +28,7 @@ from dbus.exceptions import DBusException
 
 log = logging.getLogger('mpris2controller')
 
-VERSION = '0.7'
+VERSION = '0.9'
 
 MY_BUS_NAME = 'org.icasdri.mpris2controller'
 MY_PATH = '/org/icasdri/mpris2controller'
@@ -130,7 +128,7 @@ class Controller(dbus.service.Object):
                     self.playing.add(new_owner)
 
     def markas_playing(self, name):
-        # Add to playing
+        # add to playing
         with remove_if_there:
             self.not_playing.remove(name)
         if name not in self.playing:
@@ -138,7 +136,7 @@ class Controller(dbus.service.Object):
             log.info('%s marked as playing.', name)
 
     def markas_not_playing(self, name):
-        # Add to back of non-playing
+        # add to back of non-playing
         self.playing.discard(name)
         if name not in self.not_playing:
             self.not_playing.append(name)
@@ -162,23 +160,23 @@ class Controller(dbus.service.Object):
                 raise
 
     def call_on_all_playing(self, method_name):
-        # Loops through all in playing and calls method
+        # loops through all in playing and calls method
         expired = set()
         for n in self.playing:
             if not self._call_on_player(n, method_name):
                 expired.add(n)
 
-        # Not all clients correctly deregister, so we have to manually cleanup
+        # not all clients correctly deregister, so we have to manually cleanup
         for player in expired:
             self.remove(player)
 
     def call_on_one_playing(self, method_name):
-        # Calls on one in playing, only if there is only one playing
+        # calls on one in playing, only if there is only one playing
         if len(self.playing) == 1:
             self.call_on_all_playing(method_name)
 
     def call_on_head_not_playing(self, method_name):
-        # Pops/peeks first off back of non-playing and calls method
+        # pops/peeks first off back of non-playing and calls method
         while len(self.not_playing) > 0:
             cur = self.not_playing[-1]
             if self._call_on_player(cur, method_name):
@@ -225,17 +223,16 @@ def call_daemon_method(method_name):
 
 def main():
     parser = argparse.ArgumentParser(
-            description='A small user daemon that intelligently controls'
-                        'MPRIS2-compatible media players')
+            description='A small daemon for the Linux desktop that '
+                        'intelligently controls MPRIS2-compatible media players')
     parser.add_argument('call', nargs='?', metavar='METHOD',
-            help='calls method (PlayPause, Next, or Previous) on daemon, '
-                 'starting it if necessary')
+            help='method to call on daemon (PlayPause, Next, Previous, or Quit)')
     parser.add_argument('--no-fork', '--nofork', '--foreground',
             action='store_true', help='do not fork daemon to the background')
     parser.add_argument('--version', action='version',
             version='%(prog)s {}'.format(VERSION))
     parser.add_argument('--debug', action='store_true',
-            help='print debugging information')
+            help='log/print debugging information')
 
     args = parser.parse_args()
 
@@ -279,4 +276,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(130)
