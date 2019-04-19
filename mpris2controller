@@ -200,12 +200,18 @@ class Controller(dbus.service.Object):
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def Next(self):
         log.info('Method call for Next.')
-        self.call_on_one_playing('Next')
+        if len(self.playing) > 0:
+            self.call_on_one_playing('Next')
+        else:
+            self.call_on_head_not_playing('Next')
 
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def Previous(self):
         log.info('Method call for Previous.')
-        self.call_on_one_playing('Previous')
+        if len(self.playing) > 0:
+            self.call_on_one_playing('Previous')
+        else:
+            self.call_on_head_not_playing('Previous')
 
 
 def is_daemon_up():
