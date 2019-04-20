@@ -5,7 +5,7 @@
     * Plays the most recently paused media player if none are currently playing
     * Pauses all media players if one or more are currently playing
 * Next/Previous control
-    * Advances to the next or previous song on the media player that is currently playing.
+    * Advances to the next or previous song on the media player that is currently playing, or on the most recently _used_ media player if all are paused.
 
 It accomplishes this by keeping track of the playback status of all MPRIS2 players currently active in a user's session, alleviating problems such as only being able to have keybindings for a specific player, having all players start playing at once, etc.
 
