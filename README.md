@@ -27,6 +27,8 @@ For Arch Linux users, [mpris2controller-git](https://aur.archlinux.org/packages/
 
 * `mpris2controller PlayPause` to play the most recently paused media player or pause all media players
 * `mpris2controller Next` or `mpris2controller Previous` to advance to the next or previous song on the currently playing media player
+* `mpris2controller Status` to get playback status of the most recently used media player
+* `mpris2controller Metadata` to get media's metadata (artist, title, etc) from the most recently used media player
 
 On the first run of any of these commands, mpris2controller will attempt start its daemon on-demand and detect running media players. To start the daemon manually, simply run `mpris2controller` (with no arguments) or `mpris2controller --nofork` (which starts the daemon in the foreground). Either of these commands can also be placed in an appropriate autostart system to autostart mpris2controller with a desktop session.
 
@@ -42,3 +44,5 @@ The daemon can also be controlled via methods exposed on the [DBus](http://www.f
     * `org.icasdri.mpris2controller.Next`
     * `org.icasdri.mpris2controller.Previous`
     * `org.icasdri.mpris2controller.Quit`
+    * `org.icasdri.mpris2controller.Status`
+    * `org.icasdri.mpris2controller.Metadata`

@@ -17,6 +17,7 @@
 
 import os
 import sys
+import json
 
 import argparse
 from contextlib import suppress
@@ -184,6 +185,21 @@ class Controller(dbus.service.Object):
             else:
                 self.remove(cur)
 
+    def get_from_head_playing(self, property_):
+        return Player(self.bus, next(iter(self.playing))).get(property_)
+
+    def get_from_head_not_playing(self, property_):
+        return Player(self.bus, self.not_playing[-1]).get(property_)
+
+    def get_from_head(self, property_):
+        if self.playing:
+            return self.get_from_head_playing(property_)
+        if self.not_playing:
+            return self.get_from_head_not_playing(property_)
+        # default represents situation when queried property is not accessible
+        # because of lack of launched media player(s); there is no(ne) property
+        return None
+
     @dbus.service.method(dbus_interface=MY_INTERFACE)
     def Quit(self):
         log.info('Method call for Quit.')
@@ -213,6 +229,16 @@ class Controller(dbus.service.Object):
         else:
             self.call_on_head_not_playing('Previous')
 
+    @dbus.service.method(dbus_interface=MY_INTERFACE)
+    def Status(self):
+        log.info('Method call for Status.')
+        return self.get_from_head('PlaybackStatus')
+
+    @dbus.service.method(dbus_interface=MY_INTERFACE)
+    def Metadata(self):
+        log.info('Method call for Metadata.')
+        return self.get_from_head('Metadata')
+
 
 def is_daemon_up():
     return dbus.SessionBus().name_has_owner(MY_BUS_NAME)
@@ -221,7 +247,12 @@ def is_daemon_up():
 def call_daemon_method(method_name):
     try:
         log.info('Calling method %s on daemon.', method_name)
-        getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), method_name)()
+        result = getattr(dbus.SessionBus().get_object(MY_BUS_NAME, MY_PATH), method_name)()
+        if result:
+            try:
+                print(json.dumps(dict(result)))
+            except ValueError:
+                print(result)
     except DBusException as ex:
         log.error('%s\nFailed to call method %s. Check that the method name '
                   'is spelled correctly.\n', ex, method_name)
@@ -232,7 +263,7 @@ def main():
             description='A small daemon for the Linux desktop that '
                         'intelligently controls MPRIS2-compatible media players')
     parser.add_argument('call', nargs='?', metavar='METHOD',
-            help='method to call on daemon (PlayPause, Next, Previous, or Quit)')
+            help='method to call on daemon (PlayPause, Next, Previous, Quit, Status, or Metadata)')
     parser.add_argument('--no-fork', '--nofork', '--foreground',
             action='store_true', help='do not fork daemon to the background')
     parser.add_argument('--version', action='version',
